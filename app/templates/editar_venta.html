@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Oportunidades de Venta</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* bg-gray-900 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 2rem;
+            box-sizing: border-box;
+            color: white;
+        }
+        /* Estilos para el modal personalizado (reemplaza alert/confirm) */
+        .custom-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .custom-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .custom-modal {
+            background-color: #1f2937; /* gris-800 */
+            padding: 2rem;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            color: white;
+            max-width: 400px;
+            width: 90%;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        .custom-modal-overlay.active .custom-modal {
+            transform: translateY(0);
+        }
+        .custom-modal h3 {
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .custom-modal p {
+            margin-bottom: 1.5rem;
+            color: #d1d5db; /* gray-300 */
+        }
+        .custom-modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .custom-modal-buttons button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        .custom-modal-buttons .confirm-btn {
+            background-color: #22c55e; /* green-600 */
+            color: white;
+        }
+        .custom-modal-buttons .confirm-btn:hover {
+            background-color: #16a34a; /* green-700 */
+        }
+        .custom-modal-buttons .cancel-btn {
+            background-color: #ef4444; /* red-600 */
+            color: white;
+        }
+        .custom-modal-buttons .cancel-btn:hover {
+            background-color: #dc2626; /* red-700 */
+        }
+        .custom-modal-buttons .alert-btn {
+            background-color: #3b82f6; /* blue-600 */
+            color: white;
+        }
+        .custom-modal-buttons .alert-btn:hover {
+            background-color: #2563eb; /* blue-700 */
+        }
+
+        /* Custom styles for the form fields to match the image */
+        .form-field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem; /* Espacio entre los campos */
+        }
+
+        @media (min-width: 768px) { /* md breakpoint for two columns */
+            .form-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1.5rem; /* Espacio entre columnas y filas */
+            }
+            /* Asegura que los comentarios tomen todo el ancho */
+            .form-grid .full-width {
+                grid-column: span 2;
+            }
+        }
+
+        .input-style, .select-style, .textarea-style {
+            background-color: #1f2937; /* bg-gray-800 */
+            border: 1px solid #4b5563; /* border-gray-600 */
+            border-radius: 0.5rem; /* rounded-lg */
+            padding: 0.75rem 1rem; /* py-3 px-4 */
+            color: white;
+            font-size: 1rem;
+            line-height: 1.5;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        .input-style:focus, .select-style:focus, .textarea-style:focus {
+            border-color: #3b82f6; /* blue-500 */
+            outline: 0;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); /* ring-blue-500 */
+        }
+        .input-style::placeholder, .textarea-style::placeholder {
+            color: #9ca3af; /* gray-400 */
+        }
+
+        /* Specific styling for amount and probability fields to include prefix/suffix */
+        .input-with-prefix, .input-with-suffix {
+            display: flex;
+            align-items: center;
+            background-color: #1f2937; /* bg-gray-800 */
+            border: 1px solid #4b5563; /* border-gray-600 */
+            border-radius: 0.5rem; /* rounded-lg */
+            padding-left: 1rem; /* Espacio para el prefijo */
+            padding-right: 1rem; /* Espacio para el sufijo */
+        }
+        .input-with-prefix span, .input-with-suffix span {
+            color: white;
+            font-size: 1rem;
+            margin-right: 0.5rem;
+        }
+        .input-with-suffix span {
+            margin-left: 0.5rem;
+            margin-right: 0;
+        }
+        .input-with-prefix input, .input-with-suffix input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: white;
+            padding: 0.75rem 0; /* Ajusta el padding vertical */
+        }
+        .input-with-prefix input:focus, .input-with-suffix input:focus {
+            box-shadow: none; /* Elimina el box-shadow extra del input interno */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Main container for the sales opportunity form -->
+    <div id="form-view" class="w-full max-w-5xl bg-gray-800 p-8 rounded-xl shadow-lg mx-auto my-6">
+        <h2 id="form-title" class="text-2xl font-bold text-white mb-6 text-center">Registrar Nueva Oportunidad</h2>
+        <form id="sale-form" class="space-y-6">
+            <div class="form-grid">
+                <!-- Opportunity Field -->
+                <div>
+                    <label for="opportunity" class="block text-sm font-medium text-gray-300 mb-1">Oportunidad</label>
+                    <input type="text" id="opportunity" name="opportunity" required
+                           class="w-full input-style">
+                </div>
+
+                <!-- Client Field -->
+                <div>
+                    <label for="client" class="block text-sm font-medium text-gray-300 mb-1">Cliente</label>
+                    <select id="client" name="client" required
+                            class="w-full select-style">
+                        <!-- Options will be dynamically populated with JavaScript -->
+                        <option value="">Selecciona un cliente</option>
+                    </select>
+                </div>
+
+                <!-- Client Contact Field -->
+                <div>
+                    <label for="clientContact" class="block text-sm font-medium text-gray-300 mb-1">Contacto del Cliente</label>
+                    <input type="text" id="clientContact" name="clientContact" required
+                           class="w-full input-style">
+                </div>
+
+                <!-- Area Field -->
+                <div>
+                    <label for="area" class="block text-sm font-medium text-gray-300 mb-1">Área</label>
+                    <select id="area" name="area" required
+                            class="w-full select-style">
+                        <option value="">Selecciona un área</option>
+                        <option value="SISTEMAS">Sistemas</option>
+                        <option value="Recursos Humanos">Recursos Humanos</option>
+                        <option value="Compras">Compras</option>
+                        <option value="Seguridad">Seguridad</option>
+                        <option value="Mantenimiento">Mantenimiento</option>
+                        <option value="Almacén">Almacén</option>
+                    </select>
+                </div>
+
+                <!-- Product/Service Field -->
+                <div>
+                    <label for="productService" class="block text-sm font-medium text-gray-300 mb-1">Producto / Servicio</label>
+                    <select id="productService" name="productService" required
+                            class="w-full select-style">
+                        <option value="">Selecciona un producto/servicio</option>
+                        <option value="ZEBRA">ZEBRA</option>
+                        <option value="AXIS">AXIS</option>
+                        <option value="AVIGILION">AVIGILION</option>
+                        <option value="CISCO">CISCO</option>
+                        <option value="GENETEC">GENETEC</option>
+                        <option value="SOFTWARE">SOFTWARE</option>
+                        <option value="SERVICIOS">SERVICIOS</option>
+                        <option value="PÓLIZA">PÓLIZA</option>
+                        <option value="RUNRATE">RUNRATE</option>
+                    </select>
+                </div>
+
+                <!-- Amount Field -->
+                <div>
+                    <label for="amount" class="block text-sm font-medium text-gray-300 mb-1">Monto de la Oportunidad ($)</label>
+                    <div class="input-with-prefix w-full">
+                        <span>$</span>
+                        <input type="number" id="amount" name="amount" step="0.01" required>
+                    </div>
+                </div>
+
+                <!-- Expected Close Month Field -->
+                <div>
+                    <label for="expectedCloseMonth" class="block text-sm font-medium text-gray-300 mb-1">Mes de Cierre Esperado</label>
+                    <select id="expectedCloseMonth" name="expectedCloseMonth" required
+                            class="w-full select-style">
+                        <option value="">Selecciona un mes</option>
+                        <option value="01">Enero</option>
+                        <option value="02">Febrero</option>
+                        <option value="03">Marzo</option>
+                        <option value="04">Abril</option>
+                        <option value="05">Mayo</option>
+                        <option value="06">Junio</option>
+                        <option value="07">Julio</option>
+                        <option value="08">Agosto</option>
+                        <option value="09">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
+
+                <!-- Probability Field -->
+                <div>
+                    <label for="probability" class="block text-sm font-medium text-gray-300 mb-1">Probabilidad de Cierre (%)</label>
+                    <div class="input-with-suffix w-full">
+                        <input type="number" id="probability" name="probability" min="0" max="100" step="1" required>
+                        <span>%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comments Field (full width) -->
+            <div class="full-width">
+                <label for="comments" class="block text-sm font-medium text-gray-300 mb-1">Comentarios</label>
+                <textarea id="comments" name="comments" rows="4"
+                          class="w-full textarea-style"></textarea>
+            </div>
+
+            <!-- Form action buttons -->
+            <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 mt-8">
+                <button type="submit" id="submit-button"
+                        class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-md transform hover:scale-105">
+                    Registrar Venta
+                </button>
+                <button type="button" id="clear-form-button"
+                        class="w-full sm:w-auto bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-md transform hover:scale-105">
+                    Limpiar Formulario
+                </button>
+                <button type="button" id="discard-button"
+                        class="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-md transform hover:scale-105 hidden">
+                    Descartar Cambios
+                </button>
+                <button type="button" id="view-report-button"
+                        class="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-md transform hover:scale-105">
+                    Ver Reporte de Ventas
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Custom Modal Container (to replace alert/confirm) -->
+    <div id="custom-modal-overlay" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <h3 id="modal-title"></h3>
+            <p id="modal-message"></p>
+            <div id="modal-buttons" class="custom-modal-buttons">
+                <!-- Buttons will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get references to form elements
+        const formTitle = document.getElementById('form-title');
+        const opportunityInput = document.getElementById('opportunity');
+        const clientSelect = document.getElementById('client');
+        const clientContactInput = document.getElementById('clientContact');
+        const areaSelect = document.getElementById('area');
+        const productServiceSelect = document.getElementById('productService');
+        const amountInput = document.getElementById('amount');
+        const expectedCloseMonthSelect = document.getElementById('expectedCloseMonth');
+        const probabilityInput = document.getElementById('probability');
+        const commentsTextarea = document.getElementById('comments');
+        const saleForm = document.getElementById('sale-form');
+        const submitButton = document.getElementById('submit-button');
+        const clearFormButton = document.getElementById('clear-form-button');
+        const discardButton = document.getElementById('discard-button');
+        const viewReportButton = document.getElementById('view-report-button');
+
+        // References to custom modal elements
+        const customModalOverlay = document.getElementById('custom-modal-overlay');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalButtons = document.getElementById('modal-buttons');
+
+        // Simulated client data ASSIGNED to this user
+        const userSpecificClients = [
+            'Allegion ensenada', 'Allegion tecate', 'Allegion Tijuana', 'BD 1', 'BD 2',
+            'Bourns', 'Essilor', 'ODU', 'PIMS', 'Santa cruz', 'Otro'
+        ];
+
+        // URL to which the page will redirect after saving or clicking "View Report"
+        // IMPORTANT! Replace this URL with the actual URL of your Django sales report.
+        const DJANGO_REPORT_URL = '/reporte-clientes/';
+
+        // Variable to store the ID of the current sale being edited
+        // In a real Django application, this ID would come from the URL or template context.
+        let currentSaleId = null;
+
+        /**
+         * Displays a custom modal instead of `alert()` or `confirm()`.
+         * @param {string} title - The title of the modal.
+         * @param {string} message - The message to display in the modal.
+         * @param {string} type - 'alert' or 'confirm'.
+         * @returns {Promise<boolean>} Resolves to `true` if confirmed, `false` if canceled (only for 'confirm').
+         */
+        function showCustomModal(title, message, type = 'alert') {
+            return new Promise((resolve) => {
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                modalButtons.innerHTML = ''; // Clear previous buttons
+
+                if (type === 'alert') {
+                    const okButton = document.createElement('button');
+                    okButton.textContent = 'OK';
+                    okButton.classList.add('alert-btn');
+                    okButton.addEventListener('click', () => {
+                        customModalOverlay.classList.remove('active');
+                        resolve(true); // Always resolves to true for alerts
+                    });
+                    modalButtons.appendChild(okButton);
+                } else if (type === 'confirm') {
+                    const confirmButton = document.createElement('button');
+                    confirmButton.textContent = 'Confirmar';
+                    confirmButton.classList.add('confirm-btn');
+                    confirmButton.addEventListener('click', () => {
+                        customModalOverlay.classList.remove('active');
+                        resolve(true);
+                    });
+
+                    const cancelButton = document.createElement('button');
+                    cancelButton.textContent = 'Cancelar';
+                    cancelButton.classList.add('cancel-btn');
+                    cancelButton.addEventListener('click', () => {
+                        customModalOverlay.classList.remove('active');
+                        resolve(false);
+                    });
+
+                    modalButtons.appendChild(confirmButton);
+                    modalButtons.appendChild(cancelButton);
+                }
+
+                customModalOverlay.classList.add('active');
+            });
+        }
+
+        /**
+         * Fills the form fields with sale data.
+         * @param {Object} data - Object with sale data to pre-fill the form.
+         * @param {string} mode - 'edit' or 'new'.
+         */
+        function fillForm(data = {}, mode = 'new') {
+            opportunityInput.value = data.opportunity || '';
+            clientContactInput.value = data.clientContact || '';
+            amountInput.value = data.monto || '';
+            probabilityInput.value = data.probabilidad_cierre || 50;
+            commentsTextarea.value = data.comentarios || '';
+
+            clientSelect.value = data.client || '';
+            areaSelect.value = data.area || '';
+            productServiceSelect.value = data.product || '';
+            expectedCloseMonthSelect.value = data.mes_cierre || '';
+
+            if (mode === 'edit') {
+                formTitle.textContent = 'Editar Venta Registrada';
+                currentSaleId = data.id; // Store the ID of the sale being edited
+                submitButton.textContent = 'Guardar Cambios';
+                submitButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+                submitButton.classList.add('bg-blue-600', 'hover:bg-blue-700'); // Change to blue for "Save Changes"
+                discardButton.classList.remove('hidden'); // Ensure discard button is visible in edit mode
+                clearFormButton.classList.add('hidden'); // Hide if editing
+            } else { // mode === 'new'
+                formTitle.textContent = 'Registrar Nueva Oportunidad';
+                currentSaleId = null; // No ID if it's a new sale
+                submitButton.textContent = 'Registrar Venta';
+                submitButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                submitButton.classList.add('bg-green-600', 'hover:bg-green-700'); // Change to green for "Register Sale"
+                discardButton.classList.add('hidden'); // Hide discard button in new sale mode
+                clearFormButton.classList.remove('hidden'); // Show if in new mode
+            }
+        }
+
+        /**
+         * Populates the client dropdown with the provided list of clients.
+         * @param {Array<string>} clients - An array of client names.
+         */
+        function populateClientDropdown(clients) {
+            clientSelect.innerHTML = '<option value="">Selecciona un cliente</option>'; // Clear and add default option
+            clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client;
+                option.textContent = client;
+                clientSelect.appendChild(option);
+            });
+        }
+
+        // Event listener for form submission
+        saleForm.addEventListener('submit', async (event) => {
+            event.preventDefault(); // Prevent default form submission
+
+            // Collect form data
+            const formData = {
+                opportunity: opportunityInput.value,
+                client: clientSelect.value,
+                clientContact: clientContactInput.value,
+                area: areaSelect.value,
+                product: productServiceSelect.value,
+                monto: parseFloat(amountInput.value),
+                mes_cierre: expectedCloseMonthSelect.value,
+                probabilidad_cierre: parseInt(probabilityInput.value),
+                comentarios: commentsTextarea.value,
+            };
+
+            // This is where, in a real Django application, you would send this data to the server.
+            // For example, using fetch() or axios for a REST API.
+            // fetch('/api/oportunidades/', {
+            //     method: 'POST', // or 'PUT'/'PATCH' if currentSaleId exists
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //         // 'X-CSRFToken': getCookie('csrftoken'), // Necessary for Django
+            //     },
+            //     body: JSON.stringify(formData)
+            // })
+            // .then(response => response.json())
+            // .then(data => {
+            //     console.log('Success:', data);
+            //     showCustomModal('Éxito', '¡Operación realizada con éxito!', 'alert').then(() => {
+            //         window.location.href = DJANGO_REPORT_URL; // Redirect
+            //     });
+            // })
+            // .catch((error) => {
+            //     console.error('Error:', error);
+            //     showCustomModal('Error', 'Hubo un problema al guardar los datos.', 'alert');
+            // });
+
+            // SIMULATION: Show success message and redirect
+            if (currentSaleId) {
+                console.log(`DEBUG: Simulating saving changes for sale with ID: ${currentSaleId}`, formData);
+                await showCustomModal('Éxito', '¡Cambios guardados con éxito!', 'alert');
+            } else {
+                console.log('DEBUG: Simulating new sale registration:', formData);
+                await showCustomModal('Éxito', '¡Nueva oportunidad registrada con éxito!', 'alert');
+            }
+
+            // Redirect to your Django sales report URL
+            window.location.href = DJANGO_REPORT_URL;
+        });
+
+        // Event listener for "Clear Form" button
+        clearFormButton.addEventListener('click', async () => {
+            const confirmed = await showCustomModal('Limpiar Formulario', '¿Estás seguro de que quieres limpiar el formulario para registrar una nueva oportunidad?', 'confirm');
+            if (confirmed) {
+                fillForm({}, 'new'); // Clear the form and set to "new" mode
+                console.log('DEBUG: Formulario limpiado para nueva entrada.');
+            }
+        });
+
+        // Event listener for "Discard Changes" button
+        discardButton.addEventListener('click', async () => {
+            const confirmed = await showCustomModal('Descartar Cambios', '¿Estás seguro de que quieres descartar los cambios?', 'confirm');
+            if (confirmed) {
+                console.log('DEBUG: Cambios descartados. El formulario se ha restablecido.');
+                // In a real editing scenario, you would reload the original data from the server here.
+                // For this example, we simply revert to "new" mode.
+                fillForm({}, 'new');
+            }
+        });
+
+        // Event listener for "View Sales Report" button (from the form)
+        viewReportButton.addEventListener('click', () => {
+            console.log('DEBUG: Redirecting to Django sales report.');
+            window.location.href = DJANGO_REPORT_URL;
+        });
+
+        // Function to get CSRF token (necessary for Django if you use fetch POST/PUT)
+        // function getCookie(name) {
+        //     let cookieValue = null;
+        //     if (document.cookie && document.cookie !== '') {
+        //         const cookies = document.cookie.split(';');
+        //         for (let i = 0; i < cookies.length; i++) {
+        //             const cookie = cookies[i].trim();
+        //             if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        //                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        //                 break;
+        //             }
+        //         }
+        //     }
+        //     return cookieValue;
+        // }
+
+
+        // Initialize the application when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            populateClientDropdown(userSpecificClients);
+            // Start the form in "new opportunity" mode
+            fillForm({}, 'new');
+
+            // If you wanted to simulate editing on page load (as if coming from an edit link):
+            // const exampleSaleDataForEdit = {
+            //     id: 'some-unique-id-from-db', // This ID would come from your Django backend
+            //     opportunity: 'PO0939393',
+            //     client: 'Allegion ensenada',
+            //     clientContact: 'Pedro',
+            //     area: 'SISTEMAS',
+            //     product: 'ZEBRA',
+            //     monto: 25000.00,
+            //     mes_cierre: '10', // October
+            //     probabilidad_cierre: 70,
+            //     comentarios: 'Esta PO la recibimos ayer, cliente interesado en expansión.',
+            // };
+            // fillForm(exampleSaleDataForEdit, 'edit');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+{% extends "base.html" %} {# Extiende la plantilla base #}
+{% load app_filters %} {# Para usar el filtro format_currency_es #}
+
+{% block title %}
+    Oportunidades de {{ cliente.nombre_empresa }}
+{% endblock %}
+
+{% block content %}
+<div class="mt-8 bg-gray-900 text-gray-100 p-8 rounded-lg shadow-2xl border border-gray-700">
+    <div class="flex justify-between items-center mb-6"> {# Contenedor para título y botón #}
+        <h1 class="text-3xl font-extrabold text-white">Oportunidades de: <span class="text-blue-400">{{ cliente.nombre_empresa }}</span></h1>
+        <button id="toggleFilterButton" class="bg-gray-700 hover:bg-gray-600 text-gray-100 text-sm font-semibold py-2 px-4 rounded-md shadow-sm transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75">
+            Mostrar Filtros
+        </button>
+    </div>
+    <p class="text-gray-300 mb-8 text-center">Listado de oportunidades asociadas a este cliente.</p>
+
+    {# Formulario de Filtros - Inicialmente oculto #}
+    <form id="filterForm" method="get" class="hidden mb-8 p-4 bg-gray-800 rounded-lg shadow-sm grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border border-gray-700">
+        {% for field in filter_form %}
+            <div class="flex flex-col">
+                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-300 mb-1">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<p class="text-xs text-gray-400 mt-1">{{ field.help_text }}</p>{% endif %}
+                {% if field.errors %}<p class="text-red-400 text-sm mt-1">{{ field.errors }}</p>{% endif %}
+            </div>
+        {% endfor %}
+        <div class="flex items-end justify-end col-span-full md:col-span-1 lg:col-span-1">
+            <button type="submit" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
+                Filtrar
+            </button>
+            <a href="{% url 'oportunidades_por_cliente' cliente.id %}" class="w-full md:w-auto ml-2 bg-gray-700 hover:bg-gray-600 text-gray-100 font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75">
+                Limpiar Filtros
+            </a>
+        </div>
+    </form>
+    {# FIN FORMULARIO DE FILTROS #}
+
+    <div class="overflow-x-auto">
+        {% if oportunidades %}
+        <table class="min-w-full divide-y divide-gray-700 rounded-lg overflow-hidden">
+            <thead class="bg-gray-800">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Oportunidad</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Área</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Producto</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Monto</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Mes Cierre</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Probabilidad</th>
+                    <th scope="col" class="relative px-6 py-3"><span class="sr-only">Acciones</span></th>
+                </tr>
+            </thead>
+            <tbody class="bg-gray-800 divide-y divide-gray-700">
+                {% for op in oportunidades %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{{ op.oportunidad }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ op.get_area_display }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ op.get_producto_display }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${{ op.monto|format_currency_es }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ op.get_mes_cierre_display }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                        <div class="w-full bg-gray-700 rounded-full h-2.5">
+                            <div class="h-2.5 rounded-full" 
+                                 style="width: {{ op.probabilidad_cierre }}%; background-color: hsl({{ op.probabilidad_cierre | div:100 | mul:120 }}, 70%, 50%);">
+                            </div>
+                        </div>
+                        <span class="mt-1 text-xs text-gray-400">{{ op.probabilidad_cierre }}%</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="{% url 'editar_venta_todoitem' op.id %}" class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                            &#9998; Editar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-center text-gray-400 text-lg">No hay oportunidades registradas para este cliente.</p>
+        {% endif %}
+    </div>
+
+    <div class="mt-8 text-center">
+        <a href="{% url 'home' %}" class="inline-block bg-gray-700 hover:bg-gray-600 text-gray-100 font-semibold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75">
+            Volver al Dashboard
+        </a>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Aplicar clases de Tailwind a los elementos del formulario de filtros
+        const filterFormFields = document.querySelectorAll('#filterForm select, #filterForm input[type="number"], #filterForm input[type="text"]');
+        filterFormFields.forEach(field => {
+            field.classList.add('mt-1', 'block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-600', 'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-blue-500', 'focus:border-blue-500', 'sm:text-sm', 'bg-gray-700', 'text-gray-100');
+        });
+
+        // Lógica para mostrar/ocultar el formulario de filtros
+        const toggleButton = document.getElementById('toggleFilterButton');
+        const filterForm = document.getElementById('filterForm');
+
+        toggleButton.addEventListener('click', function() {
+            filterForm.classList.toggle('hidden');
+            if (filterForm.classList.contains('hidden')) {
+                toggleButton.textContent = 'Mostrar Filtros';
+            } else {
+                toggleButton.textContent = 'Ocultar Filtros';
+            }
+        });
+
+        // Si el formulario ya tiene filtros aplicados al cargar la página, mostrarlo por defecto
+        const urlParams = new URLSearchParams(window.location.search);
+        let hasFilters = false;
+        for (const [key, value] of urlParams.entries()) {
+            if (value && key !== 'page') { // Excluye el parámetro de paginación si lo tuvieras
+                hasFilters = true;
+                break;
+            }
+        }
+        if (hasFilters) {
+            filterForm.classList.remove('hidden');
+            toggleButton.textContent = 'Ocultar Filtros';
+        }
+    });
+</script>
+{% endblock %}
