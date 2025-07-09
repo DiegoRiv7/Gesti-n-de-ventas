@@ -4,7 +4,7 @@ services:
   django:
     build: .
     ports:
-      - "8000:8000"
+      - "8989:8000"
     environment:
       - DEBUG=False
       - DJANGO_SETTINGS_MODULE=cartera_clientes.settings
