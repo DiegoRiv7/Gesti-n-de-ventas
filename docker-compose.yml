@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: cartera_clientes_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: Filipenses4:13
+      MYSQL_ROOT_PASSWORD: Filipenses4:13
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  django:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - DJANGO_SETTINGS_MODULE=cartera_clientes.settings
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      - mysql
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  static_volume:
+  media_volume:
+
+networks:
+  app-network:
+    driver: bridge
