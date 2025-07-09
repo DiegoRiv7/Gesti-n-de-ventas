@@ -8,7 +8,7 @@ services:
     environment:
       - DEBUG=False
       - DJANGO_SETTINGS_MODULE=cartera_clientes.settings
-      - ALLOWED_HOSTS=139.177.101.46,localhost,127.0.0.1
+      - ALLOWED_HOSTS=*
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
