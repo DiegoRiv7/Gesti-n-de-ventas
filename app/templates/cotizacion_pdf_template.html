@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cotización - {{ cotizacion.descripcion|default:"Sin Nombre" }}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      color: #111;
+      background: #fff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .container {
+      width: 97vw;
+      max-width: 97vw;
+      margin: 0 auto;
+      padding: 0 1.5vw;
+      background: #fff;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 2px solid #ff9800;
+      padding: 18px 0 12px 0;
+      margin-bottom: 18px;
+      background: #ff9800;
+      color: #111;
+    }
+    .logo img {
+      max-height: 54px;
+      border-radius: 6px;
+      background: #fff;
+      padding: 2px;
+    }
+    .company-details {
+      font-size: 13px;
+      text-align: right;
+      color: #111;
+      line-height: 1.5;
+      background: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      border: none !important;
+    }
+    .company-details strong {
+      font-size: 16px;
+      letter-spacing: 1px;
+      background: none !important;
+      color: #111;
+    }
+    .company-details span {
+      background: none !important;
+      color: #111;
+    }
+    .section {
+      padding: 18px 0;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      border: none;
+      background: #fff;
+      margin-top: 0;
+      color: #111;
+    }
+    h2 {
+      font-size: 15px;
+      margin-bottom: 8px;
+      color: #111;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-top: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0;
+      font-size: 13px;
+      background: transparent;
+      color: #111;
+    }
+    table tr { page-break-inside: avoid; }
+    th, td {
+      padding: 7px 6px;
+      border-bottom: 1px solid #222;
+      color: #111;
+      background: transparent;
+    }
+    th {
+      background: #ff9800;
+      color: #111;
+      border-top: 1px solid #222;
+    }
+    td.text-right { text-align: right; }
+    td.descripcion {
+      text-align: justify;
+      text-justify: inter-word;
+    }
+    .totals {
+      max-width: 340px;
+      margin-left: auto;
+      margin-top: 12px;
+      font-size: 13px;
+      background: #fff;
+      border: none;
+      border-radius: 0;
+      padding: 8px 0 0 0;
+      color: #111;
+    }
+    .totals td { padding: 5px 0; border-bottom: none; }
+    .totals .label {
+      color: #111;
+      text-align: left;
+    }
+    .totals .value { text-align: right; font-weight: 600; color: #111; }
+    .totals .total {
+      font-size: 15px;
+      font-weight: 700;
+      border-top: 2px solid #222;
+      color: #111;
+      padding-top: 7px;
+    }
+    .notes, .terms {
+      font-size: 12px;
+      color: #111;
+      line-height: 1.6;
+    }
+    .footer {
+      border-top: 2px solid #222;
+      color: #111;
+      background: #fff;
+      padding: 12px 0 0 0;
+      text-align: center;
+      font-size: 11px;
+      margin-top: 18px;
+    }
+    /* Paginación real para PDF con wkhtmltopdf/WeasyPrint */
+    @page {
+      margin: 14mm;
+      @bottom-right {
+        color: #000;
+        content: counter(page) "/" counter(pages);
+        font-size: 13px;
+      }
+    }
+    .footer-paginacion { display: none !important; }
+    .info-grid {
+      display: flex;
+      justify-content: space-between;
+      gap: 32px;
+      width: 100%;
+      background: #f6fbfd;
+      border: none;
+      margin-bottom: 0;
+      padding: 18px 0 0 0;
+      color: #22313a;
+      border-radius: 28px 28px 28px 28px;
+    }
+    .info-grid h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #34495e;
+      letter-spacing: 0.5px;
+      margin-top: 0;
+      text-align: left;
+    }
+    .client-name-only-large {
+      font-size: 28px;
+      font-weight: 800;
+      color: #22313a !important;
+      margin: 0 0 0 2px;
+      text-align: left;
+      line-height: 1.1;
+      letter-spacing: -1px;
+      text-transform: none;
+    }
+    .info-grid > div:last-child {
+      text-align: right;
+      font-size: 18px;
+      font-weight: 700;
+      color: #34495e;
+    }
+    .info-grid > div:last-child h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #34495e;
+      text-align: right;
+    }
+    .info-grid > div:last-child p {
+      font-size: 14px;
+      margin: 2px 0;
+      color: #22313a !important;
+      font-weight: 600;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">
+        <img src="http://www.baja-net.com/images/logo.png" alt="Logo BajaNet">
+      </div>
+      <div class="company-details" style="background: none !important;">
+        <strong style="font-size: 16px; letter-spacing: 1px;">BajaNet S.A. de C.V.</strong><br>
+        <span>📞 +52 664 123 4567</span><br>
+        <span>🌐 www.baja-net.com</span><br>
+        <span>✉️ contacto@baja-net.com</span>
+      </div>
+    </div>
+    <div class="section info-grid">
+      <div>
+        <h2>Cliente</h2>
+        <p class="client-name-only-large">{{ cotizacion.cliente.nombre_empresa }}</p>
+      </div>
+      <div style="text-align: right;">
+        <h2>Cotización</h2>
+        <p><strong>Folio:</strong> #{{ cotizacion.id }}</p>
+        <p><strong>Fecha:</strong> {% now "d/m/Y" %}</p>
+        <p><strong>Vendedor:</strong> {{ cotizacion.created_by.get_full_name|default:cotizacion.created_by.username }}</p>
+      </div>
+    </div>
+    <div class="section">
+      <h2>Detalle de Productos</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>No. Partida</th>
+            <th>PRODUCTO</th>
+            <th>DESCRIPCIÓN</th>
+            <th>CANTIDAD</th>
+            <th>PRECIO UNITARIO</th>
+            <th>DESC. (%)</th>
+            <th>TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for detalle in detalles_cotizacion %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ detalle.nombre_producto }}</td>
+            <td class="descripcion">{{ detalle.descripcion|default:"-" }}</td>
+            <td class="text-right">{{ detalle.cantidad }}</td>
+            <td class="text-right">${{ detalle.precio_unitario|floatformat:2 }}</td>
+            <td class="text-right">{{ detalle.descuento_porcentaje|floatformat:2 }}%</td>
+            <td class="text-right">${{ detalle.get_total_item|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <table class="totals">
+        <tr>
+          <td class="label">Subtotal:</td>
+          <td class="value">${{ cotizacion.subtotal|floatformat:2 }}</td>
+        </tr>
+        <tr>
+          <td class="label">IVA ({{ iva_rate_percentage|floatformat:0 }}%):</td>
+          <td class="value">${{ cotizacion.iva_amount|floatformat:2 }}</td>
+        </tr>
+        <tr class="total">
+          <td class="label">Total:</td>
+          <td class="value">${{ cotizacion.total|floatformat:2 }} {{ cotizacion.moneda }}</td>
+        </tr>
+      </table>
+    </div>
+    {% if cotizacion.descripcion %}
+    <div class="section">
+      <h2>Notas</h2>
+      <p class="notes">{{ cotizacion.descripcion }}</p>
+    </div>
+    {% endif %}
+    <div class="section">
+      <h2>Términos y Condiciones</h2>
+      <p class="terms">
+        Esta cotización tiene una validez de 15 días desde su emisión. Precios sujetos a cambios sin previo aviso. El pedido se procesará tras la confirmación de la orden de compra. Todos los términos deben ser aceptados previamente.
+      </p>
+    </div>
+    <div class="footer">
+      &copy; {% now "Y" %} BajaNet S.A. de C.V. Todos los derechos reservados.
+    </div>
+  </div>
+</body>
+</html>
+<script>
+  // Elimina la paginación JS para PDF profesional, solo deja la regla CSS
+</script>
+<!--
+NOTA SOBRE PAGINACIÓN:
+El contador de páginas en HTML solo funciona automáticamente si usas herramientas como wkhtmltopdf, WeasyPrint o similares, usando variables CSS como:
+@page {
+  @bottom-center {
+    content: "Página " counter(page) " de " counter(pages);
+  }
+}
+En navegadores o impresión directa desde el navegador, el script JS solo puede mostrar 1/1 por defecto.
+-->

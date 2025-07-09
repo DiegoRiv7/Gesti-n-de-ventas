@@ -17,6 +17,8 @@
                 <tr>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Cliente</th> {# Texto claro #}
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Total Vendido</th> {# Etiqueta cambiada a "Total Vendido" #}
+                    {# NUEVA COLUMNA: Encabezado para la acción de crear cotización #}
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Acciones</th>
                 </tr>
             </thead>
             <tbody class="bg-gray-800 divide-y divide-gray-700"> {# Fondo de cuerpo de tabla oscuro y divisor #}
@@ -30,6 +32,13 @@
                     </td>
                     {# Aplicando el filtro format_currency_es aquí #}
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${{ row.total_monto|format_currency_es }}</td> {# El valor `total_monto` debe venir ya filtrado del backend #}
+                    {# NUEVA COLUMNA: Botón para crear cotización #}
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        {# Aquí se asume que tienes una URL configurada en Django llamada 'crear_cotizacion' que espera un ID de cliente #}
+                        <a href="{% url 'crear_cotizacion' row.id %}" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out">
+                            Crear Cotización
+                        </a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -38,6 +47,8 @@
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">TOTAL VENDIDO</th> {# Etiqueta cambiada a "TOTAL VENDIDO" #}
                     {# Aplicando el filtro format_currency_es aquí #}
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">${{ total_general|format_currency_es }}</th> {# El valor `total_general` debe venir ya filtrado del backend #}
+                    {# Celda vacía para la columna de acciones en el pie de página #}
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider"></th>
                 </tr>
             </tfoot>
         </table>
@@ -54,5 +65,4 @@
     </div>
 </div>
 {% endblock %}
-
 

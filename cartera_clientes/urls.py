@@ -3,6 +3,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic.base import RedirectView
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     # Ruta para el panel de administración de Django
@@ -21,5 +22,8 @@ urlpatterns = [
     # y que las URLs de tu app sigan siendo accesibles con y sin el prefijo 'app/',
     # entonces necesitarías un enfoque más avanzado con namespaces o un patrón diferente.
     # Por ahora, esta configuración prioriza que 'reporte-clientes/' funcione directamente.
+
+path('app/', include('app.urls')), # Asegúrate de que tu app.urls esté incluida aquí
+
 ]
 

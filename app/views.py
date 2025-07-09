@@ -2,31 +2,127 @@ from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import TodoItem, Cliente
-from .forms import VentaForm, VentaFilterForm # Asegúrate de que usa VentaForm
+from .models import TodoItem, Cliente, Cotizacion, DetalleCotizacion # Asegúrate de importar los nuevos modelos
+from .forms import VentaForm, VentaFilterForm, CotizacionForm # Asegúrate de que CotizacionForm esté importado
 from django.db.models import Sum, Count, F, Q
 from django.db.models.functions import Upper, Coalesce
 from django.db.models import Value
 from datetime import date
 from dateutil.relativedelta import relativedelta
-from decimal import Decimal
+from decimal import Decimal # Importa Decimal para manejar números con precisión
+from django.utils.html import json_script
+import json
+from django.http import JsonResponse
+from django.urls import reverse # Importar reverse para construir URLs
+from django.utils import timezone
 
 # Importaciones para generación de PDF
 from weasyprint import HTML
 from django.template.loader import render_to_string
 from django.http import HttpResponse
 
+# Asegúrate de importar tu modelo Cotizacion y DetalleCotizacion
+from .models import Cotizacion, DetalleCotizacion
+
+# Importaciones para el logo Base64 (asegúrate de que estas líneas estén al inicio del archivo si no lo están)
+import base64
+import os
 
 # Función auxiliar para comprobar si el usuario es supervisor
 def is_supervisor(user):
     return user.groups.filter(name='Supervisores').exists()
 
-# Decorador para vistas que solo deben ser accesibles por supervisores o admins (opcional)
-# @user_passes_test(is_supervisor)
+# Función auxiliar para obtener el display de un valor de choice
+def _get_display_for_value(value, choices_list):
+    return dict(choices_list).get(value, value)
 
 # Vistas principales y funcionales
 @login_required
-def home(request):
+def bienvenida(request):
+    """
+    Vista de bienvenida que será la primera que vea el usuario al ingresar.
+    """
+    # Determinar perfil
+    perfil = "SUPERVISOR" if is_supervisor(request.user) else "VENDEDOR"
+    # Fecha actual
+    fecha_actual = timezone.localtime(timezone.now()).strftime('%A, %d de %B de %Y')
+
+    # Usuario del mes: más ventas cerradas (probabilidad 100%) este mes, solo vendedores
+    inicio_mes = date.today().replace(day=1)
+    fin_mes = date.today()
+    ventas_mes = (
+        TodoItem.objects.filter(probabilidad_cierre=100, fecha_creacion__date__gte=inicio_mes, fecha_creacion__date__lte=fin_mes)
+        .exclude(usuario__groups__name='Supervisores')
+        .values('usuario')
+        .annotate(ventas_cerradas=Count('id'))
+        .order_by('-ventas_cerradas')
+    )
+    usuario_mes = None
+    monto_vendido_mes = 0
+    if ventas_mes:
+        user_id = ventas_mes[0]['usuario']
+        user = User.objects.get(id=user_id)
+        # Calcular el monto total vendido por este usuario en el mes actual (probabilidad 100%)
+        monto_vendido_mes = TodoItem.objects.filter(
+            probabilidad_cierre=100,
+            fecha_creacion__date__gte=inicio_mes,
+            fecha_creacion__date__lte=fin_mes,
+            usuario=user
+        ).aggregate(total=Sum('monto'))['total'] or 0
+        usuario_mes = {
+            'nombre': user.get_full_name() or user.username,
+            'avatar_url': f'https://ui-avatars.com/api/?name={user.get_full_name() or user.username}&background=38bdf8&color=fff',
+            'ventas_cerradas': ventas_mes[0]['ventas_cerradas'],
+            'monto_vendido_mes': monto_vendido_mes,
+        }
+
+    # Usuario del día: más oportunidades registradas hoy, solo vendedores
+    hoy = date.today()
+    oportunidades_hoy = (
+        TodoItem.objects.filter(fecha_creacion__date=hoy)
+        .exclude(usuario__groups__name='Supervisores')
+        .values('usuario')
+        .annotate(oportunidades_hoy=Count('id'))
+        .order_by('-oportunidades_hoy')
+    )
+    usuario_dia = None
+    if oportunidades_hoy:
+        user_id = oportunidades_hoy[0]['usuario']
+        user = User.objects.get(id=user_id)
+        usuario_dia = {
+            'nombre': user.get_full_name() or user.username,
+            'avatar_url': f'https://ui-avatars.com/api/?name={user.get_full_name() or user.username}&background=f472b6&color=fff',
+            'oportunidades_hoy': oportunidades_hoy[0]['oportunidades_hoy'],
+        }
+
+    # Últimas oportunidades (de todos)
+    ultimas_oportunidades_qs = TodoItem.objects.select_related('cliente', 'usuario').order_by('-fecha_creacion')[:8]
+    ultimas_oportunidades = [
+        {
+            'nombre': o.oportunidad,
+            'cliente': o.cliente.nombre_empresa if o.cliente else '',
+            'monto': o.monto,
+            'probabilidad': o.probabilidad_cierre,
+            'fecha_creacion': o.fecha_creacion,
+        }
+        for o in ultimas_oportunidades_qs
+    ]
+
+    # Clima: dejar None, preparado para integración futura
+    clima = None
+
+    context = {
+        'perfil': perfil,
+        'fecha_actual': fecha_actual,
+        'usuario_mes': usuario_mes,
+        'usuario_dia': usuario_dia,
+        'ultimas_oportunidades': ultimas_oportunidades,
+        'clima': clima,
+    }
+    return render(request, 'bienvenida.html', context)
+
+@login_required
+def dashboard(request):
     # Determinar si el usuario es un supervisor
     if is_supervisor(request.user):
         # Si es supervisor, obtiene todas las oportunidades de todos los usuarios
@@ -36,10 +132,6 @@ def home(request):
         # Si no es supervisor, solo obtiene las oportunidades del usuario actual
         user_opportunities = TodoItem.objects.filter(usuario=request.user)
         print(f"DEBUG: Usuario {request.user.username} es vendedor. Obteniendo sus propias oportunidades.")
-
-
-    def _get_display_for_value(value, choices_list):
-        return dict(choices_list).get(value, value)
 
     # 1. Cliente con más/menos ventas cerradas (100% probabilidad)
     # Las ventas cerradas se filtran por usuario si no es supervisor
@@ -117,14 +209,6 @@ def home(request):
     else:
         producto_menos_vendido_context = None
 
-    # --- DEBUGGING ADICIONAL PARA PRODUCTO MENOS VENDIDO ---
-    if producto_menos_vendido_context:
-        print(f"DEBUG: home view - producto_menos_vendido_context['producto']: {producto_menos_vendido_context['producto']}")
-        print(f"DEBUG: home view - producto_menos_vendido_context['get_producto_display']: {producto_menos_vendido_context['get_producto_display']}")
-    else:
-        print("DEBUG: home view - producto_menos_vendido_context es None (no hay datos para el producto menos vendido).")
-    # --- FIN DEBUGGING ADICIONAL ---
-
 
     # --- Lógica para el Próximo Mes y Alerta de Meta ---
     # Obtener el próximo mes
@@ -132,8 +216,8 @@ def home(request):
     next_month_date = today + relativedelta(months=1)
     next_month_value = next_month_date.month # El valor numérico del mes
 
-    # Obtener el nombre del próximo mes para la visualización (DEFINIDO ANTES DE USARLO)
-    next_month_display = dict(TodoItem.MES_CHOICES).get(str(next_month_value).zfill(2), f"Mes {next_month_value}") # Esta es la línea clave
+    # Obtener el nombre del próximo mes para la visualización
+    next_month_display = dict(TodoItem.MES_CHOICES).get(str(next_month_value).zfill(2), f"Mes {next_month_value}")
 
     # Obtener las oportunidades del próximo mes (considerando el rol)
     oportunidades_proximo_mes_query = TodoItem.objects.filter(mes_cierre=str(next_month_value).zfill(2))
@@ -142,9 +226,6 @@ def home(request):
 
     total_oportunidades_proximo_mes = oportunidades_proximo_mes_query.count()
     total_monto_esperado_proximo_mes = oportunidades_proximo_mes_query.aggregate(sum_monto=Sum('monto'))['sum_monto'] or Decimal('0.00')
-
-    # DEBUG: Esta es la línea donde ocurría el error si next_month_display no estaba definido
-    print(f"DEBUG: Oportunidades para el próximo mes ({next_month_display}): {total_oportunidades_proximo_mes} - Monto: {total_monto_esperado_proximo_mes}")
 
 
     # Lógica para la alerta de meta
@@ -208,7 +289,40 @@ def home(request):
         'total_perdido_count': total_perdido_count,
         'is_supervisor': is_supervisor(request.user), # Pasamos si el usuario es supervisor al contexto
     }
-    return render (request, "home.html", context)
+    return render (request, "dashboard.html", context)
+
+
+@login_required
+def get_user_clients_api(request):
+    """
+    Vista API que devuelve los clientes asignados al usuario autenticado.
+    Si el usuario es supervisor, devuelve todos los clientes.
+    """
+    try:
+        if is_supervisor(request.user):
+            # Si el usuario es supervisor, obtener todos los clientes
+            clients_queryset = Cliente.objects.all()
+            print("DEBUG: Usuario es supervisor. Obteniendo todos los clientes.")
+        else:
+            # Si no es supervisor, obtener solo los clientes asignados a este usuario
+            # Usamos 'asignado_a' que es el campo correcto en tu modelo Cliente
+            clients_queryset = Cliente.objects.filter(asignado_a=request.user)
+            print(f"DEBUG: Usuario {request.user.username} es vendedor. Obteniendo sus clientes.")
+
+        # Serializar los clientes a un formato que pueda ser convertido a JSON
+        clients_data = []
+        for client in clients_queryset:
+            clients_data.append({
+                'id': str(client.id), # Convertir ID a string para consistencia con JSON
+                'name': client.nombre_empresa, # Mapear nombre_empresa a 'name'
+                'address': client.direccion, # Mapear direccion a 'address'
+                'taxId': client.email # Mapear email a 'taxId' (o el campo que uses para ID Fiscal)
+                # Puedes añadir más campos aquí si los necesitas en el frontend
+            })
+        return JsonResponse(clients_data, safe=False) # safe=False permite serializar listas directamente
+    except Exception as e:
+        print(f"ERROR en get_user_clients_api: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @login_required
@@ -265,22 +379,29 @@ def todos (request):
 
 @login_required
 def ingresar_venta_todoitem(request):
-    # Los supervisores no deberían tener acceso a ingresar ventas si solo son para supervisar
-    # Si quieres que puedan ingresar ventas, puedes eliminar este user_passes_test
-    # Opcional: restringir solo a no-supervisores o a roles específicos
-    if is_supervisor(request.user):
-        return redirect('home') # O a una página de "Acceso Denegado"
-
+    # Permitir a supervisores y vendedores ingresar ventas
     if request.method == 'POST':
-        form = VentaForm(request.POST, user=request.user) # Asegúrate de que usa VentaForm
+        if is_supervisor(request.user):
+            form = VentaForm(request.POST)
+        else:
+            form = VentaForm(request.POST, user=request.user)
         if form.is_valid():
             venta = form.save(commit=False)
-            venta.usuario = request.user
+            # Si es supervisor, toma el usuario del formulario
+            if is_supervisor(request.user):
+                venta.usuario = form.cleaned_data['usuario']
+            else:
+                venta.usuario = request.user
             venta.save()
             return redirect('ingresar_venta_todoitem_exitosa')
+        else:
+            # Si el formulario no es válido, mostrar errores y mantener datos
+            return render(request, 'ingresar_venta.html', {'form': form, 'errores': form.errors})
     else:
-        form = VentaForm(user=request.user) # Asegúrate de que usa VentaForm
-
+        if is_supervisor(request.user):
+            form = VentaForm()
+        else:
+            form = VentaForm(user=request.user)
     return render(request, 'ingresar_venta.html', {'form': form})
 
 def ingresar_venta_todoitem_exitosa(request):
@@ -293,7 +414,7 @@ def register(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            return redirect('todos')
+            return redirect('home') # Redirigir a 'home' después de registrar e iniciar sesión
     else:
         form = UserCreationForm()
     return render(request, 'register.html', {'form': form})
@@ -304,10 +425,10 @@ def user_login(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            return redirect('todos')
+            return redirect('home') # Redirigir a 'home' después de iniciar sesión
     else:
         form = AuthenticationForm()
-    return render(request, 'login.html', {'form': form})
+    return render(request, 'login.html', {'form': form, 'hide_dock': True}) # Pasar hide_dock=True para ocultar el dock
 
 @login_required
 def user_logout(request):
@@ -395,7 +516,7 @@ def oportunidades_por_cliente(request, cliente_id):
         oportunidades = TodoItem.objects.filter(cliente=cliente_seleccionado) # Todas las oportunidades del cliente
         print("DEBUG: Supervisor viendo oportunidades de cliente.")
     else:
-        cliente_seleccionado = get_object_or_404(Cliente, pk=cliente_id, asignado_a=request.user)
+        cliente_seleccionado = get_object_or_404(Cliente, pk=cliente_id, asignado_a=request.user) # Usar asignado_a
         oportunidades = TodoItem.objects.filter(cliente=cliente_seleccionado, usuario=request.user)
         print(f"DEBUG: Vendedor {request.user.username} viendo sus propias oportunidades de cliente.")
 
@@ -464,7 +585,7 @@ def producto_dashboard_detail(request, producto_val):
 
     print(f"DEBUG: Oportunidades encontradas para {producto_val_upper} (antes de desglosar): {oportunidades_producto_query.count()}")
     for op in oportunidades_producto_query:
-        print(f"DEBUG:   - ID: {op.id}, Oportunidad: {op.oportunidad}, Producto: {op.producto}, Probabilidad: {op.probabilidad_cierre}")
+        print(f"DEBUG:   - ID: {op.id}, Oportunidad: {op.oportunidad}, Producto: {op.producto}, Usuario ID: {op.usuario.id}")
 
 
     # --- Ventas Cerradas (probabilidad 100%) para este producto ---
@@ -507,8 +628,7 @@ def producto_dashboard_detail(request, producto_val):
     for m in meses_involucrados:
         # Aseguramos que la clave sea un string de dos dígitos para la búsqueda
         mes_key = str(m['mes_cierre']).zfill(2)
-        meses_display.append(dict(TodoItem.MES_CHOICES).get(mes_key, mes_key)) # Fallback a la clave de dos dígitos si no se encuentra el display
-
+        meses_display.append(dict(TodoItem.MES_CHOICES).get(mes_key, mes_key))
     context = {
         'producto_val': producto_val_upper, # Aseguramos que la clave pasada sea la que usará el template
         'producto_display': dict(TodoItem.PRODUCTO_CHOICES).get(producto_val_upper, producto_val_upper),
@@ -592,75 +712,468 @@ def oportunidades_perdidas_detail(request):
     return render(request, 'oportunidades_perdidas_detail.html', context)
 
 
+# VISTA DEPRECADA - MANTENIDA POR REFERENCIA
 @login_required
 def generate_quote_pdf(request, pk):
     """
-    Genera una cotización en PDF para una oportunidad de venta específica.
+    DEPRECATED: Esta vista generaba PDF para TodoItem.
+    Now it will use generate_cotizacion_pdf for the Cotizacion model.
     """
-    # Asegúrate de que solo el usuario propietario o un supervisor pueda generar la cotización
+    # Ensure that only the owner or a supervisor can generate the quote
     if is_supervisor(request.user):
         opportunity = get_object_or_404(TodoItem, pk=pk)
     else:
         opportunity = get_object_or_404(TodoItem, pk=pk, usuario=request.user)
 
-    # Contexto para la plantilla PDF
+    # Context for the PDF template
     context = {
         'opportunity': opportunity,
-        'request_user': request.user, # Para mostrar el usuario que genera la cotización
+        'request_user': request.user, # To show the user generating the quote
         'current_date': date.today(),
-        # Puedes añadir más datos de tu empresa aquí si los tienes en el modelo o settings
+        # You can add more company data here if you have it in the model or settings
         'company_name': 'Tu Empresa de Ventas S.A. de C.V.',
         'company_address': 'Calle Ficticia #123, Colonia Ejemplo, Ciudad de México',
         'company_phone': '+52 55 1234 5678',
         'company_email': 'ventas@tuempresa.com',
     }
 
-    # Renderiza la plantilla HTML a una cadena
+    # Render the HTML template to a string
     html_string = render_to_string('quote_pdf.html', context)
 
-    # Crea el PDF desde la cadena HTML
-    # Puedes añadir un base_url si tienes imágenes o CSS externos que WeasyPrint deba cargar
-    # Ejemplo: HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf(...)
+    # Create the PDF from the HTML string
+    # You can add a base_url if you have external images or CSS that WeasyPrint needs to load
+    # Example: HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf(...)
     pdf_file = HTML(string=html_string).write_pdf()
 
-    # Crea la respuesta HTTP con el PDF
+    # Create the HTTP response with the PDF
     response = HttpResponse(pdf_file, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="cotizacion_{opportunity.oportunidad}.pdf"'
     return response
 
 
-
-# Función de vista para editar una oportunidad de venta existente
-@login_required # Asegura que solo usuarios logueados puedan acceder
+# This view seems to be duplicated in your original code.
+# If you have two functions with the same name 'editar_venta_todoitem',
+# Django will use the last one defined. It is recommended to have only one.
+# I have kept it as it was in your original file.
+@login_required
 def editar_venta_todoitem(request, pk):
-    # Obtiene la instancia de TodoItem (oportunidad) a editar por su primary key (pk)
-    # Si no se encuentra, devuelve un error 404.
+    # Get the TodoItem (opportunity) instance to edit by its primary key (pk)
+    # If not found, returns a 404 error.
     oportunidad = get_object_or_404(TodoItem, pk=pk)
 
     if request.method == 'POST':
-        # Si la solicitud es POST, significa que el usuario ha enviado el formulario con los cambios.
-        # Instancia el formulario VentaForm con los datos enviados (request.POST)
-        # y, crucialmente, con la instancia existente de la oportunidad (instance=oportunidad).
-        # También pasamos el usuario actual (request.user) al formulario.
+        # If the request is POST, it means the user has submitted the form with changes.
+        # Instantiate the VentaForm with the submitted data (request.POST)
+        # and, crucially, with the existing opportunity instance (instance=oportunidad).
+        # We also pass the current user (request.user) to the form.
         form = VentaForm(request.POST, instance=oportunidad, user=request.user)
         if form.is_valid():
-            # Si los datos del formulario son válidos, guarda los cambios en la base de datos.
             form.save()
-            # Redirige al usuario a la página 'todos' (donde se lista la tabla de oportunidades)
-            # después de que la edición sea exitosa.
+            # Redirect the user to the 'todos' page (where the opportunities table is listed)
+            # after successful editing.
             return redirect('todos')
     else:
-        # Si la solicitud es GET, el usuario está pidiendo ver el formulario de edición.
-        # Instancia el formulario VentaForm con la instancia existente de la oportunidad.
-        # También pasamos el usuario actual (request.user) al formulario.
-        # Esto precarga todos los campos del formulario con los valores actuales de la oportunidad,
-        # permitiendo al usuario ver y modificar los datos existentes.
+        # If the request is GET, the user is asking to view the edit form.
+        # Instantiate the VentaForm with the existing opportunity instance.
+        # We also pass the current user (request.user) to the form.
+        # This preloads all form fields with the current opportunity values,
+        # allowing the user to view and modify existing data.
         form = VentaForm(instance=oportunidad, user=request.user)
 
-    # Renderiza el template 'ingresar_venta.html'.
-    # Este template se usa tanto para crear nuevas ventas como para editarlas,
-    # ya que el formulario (VentaForm) es el mismo.
-    # Se pasa el formulario (precargado o vacío) y la instancia de la oportunidad (útil para el template).
+    # Render the 'ingresar_venta.html' template.
+    # This template is used for both creating new sales and editing them,
+    # as the form (VentaForm) is the same.
+    # The form (preloaded or empty) and the opportunity instance (useful for the template) are passed.
     return render(request, 'ingresar_venta.html', {'form': form, 'oportunidad': oportunidad})
 
-# ... (Mantén el resto de tus 600+ líneas de código sin cambios) ...
+
+# --- NEW/CORRECTED VIEWS ADDED ---
+
+@login_required
+def oportunidades_por_cliente_view(request, cliente_id):
+    """
+    View to display sales opportunities for a specific client.
+    """
+    cliente = get_object_or_404(Cliente, pk=cliente_id)
+
+    if is_supervisor(request.user):
+        oportunidades = TodoItem.objects.filter(cliente=cliente).order_by('-fecha_creacion')
+    else:
+        oportunidades = TodoItem.objects.filter(cliente=cliente, usuario=request.user).order_by('-fecha_creacion')
+
+    context = {
+        'cliente_id': cliente_id,
+        'cliente_nombre': cliente.nombre_empresa, # Use nombre_empresa
+        'oportunidades': oportunidades,
+    }
+    return render(request, 'oportunidades_por_cliente.html', context)
+
+
+@login_required
+def crear_cotizacion_view(request, cliente_id=None):
+    """
+    View to create a new quote.
+    Handles the creation of the quote and its product details,
+    then returns a JSON response with the PDF URL.
+    """
+    cliente_seleccionado = None
+    if cliente_id:
+        cliente_seleccionado = get_object_or_404(Cliente, pk=cliente_id)
+
+    if request.method == 'POST':
+        # Instantiate the form with POST data
+        form = CotizacionForm(request.POST)
+
+        if form.is_valid():
+            cotizacion = form.save(commit=False)
+            cotizacion.save()
+            print(f"DEBUG: Quote saved with ID: {cotizacion.id}")
+
+            # Collect product data sent from JavaScript
+            productos_data = {}
+            # Iterate through request.POST.items() to correctly parse product data
+            # The keys will look like 'productos[1][nombre]', 'productos[1][cantidad]', etc.
+            # We need to group them by index.
+            for key, value in request.POST.items():
+                if key.startswith('productos['):
+                    # Extract the index and the field name
+                    # Example: 'productos[1][nombre]' -> index '1', field 'nombre'
+                    parts = key.split('[')
+                    index = parts[1].split(']')[0]
+                    field = parts[2].split(']')[0]
+
+                    if index not in productos_data:
+                        productos_data[index] = {}
+                    productos_data[index][field] = value
+
+            # Convert the dictionary of dictionaries into a list of dictionaries,
+            # sorted by their original numerical index to maintain order.
+            productos_list = [productos_data[key] for key in sorted(productos_data.keys(), key=int)]
+            print(f"DEBUG: productos_list before saving details: {productos_list}") # NEW DEBUG PRINT FOR DUPLICATION ISSUE
+
+            # Calculate subtotal and quote totals
+            calculated_subtotal = Decimal('0.00')
+            for item_data in productos_list:
+                try:
+                    cantidad = int(item_data.get('cantidad', 0))
+                    precio = Decimal(item_data.get('precio', '0.00'))
+                    descuento = Decimal(item_data.get('descuento', '0.00'))
+                    
+                    item_total = cantidad * precio
+                    item_total -= item_total * (descuento / Decimal('100.00'))
+                    calculated_subtotal += item_total.quantize(Decimal('0.01')) # Round each item to 2 decimal places before summing
+                    print(f"DEBUG_CALC: Item: {item_data.get('nombre')}, Quantity: {cantidad}, Price: {precio}, Discount: {descuento}, Item Total (rounded): {item_total.quantize(Decimal('0.01'))}")
+                except (ValueError, TypeError) as e:
+                    print(f"Warning: Invalid product data found: {item_data} - Error: {e}")
+                    # Consider returning an error here or logging more severely
+                    # If a detail is invalid, it's better to delete the entire quote
+                    cotizacion.delete()
+                    return JsonResponse({'success': False, 'errors': {'__all__': [{'message': f'Invalid product data in row. Error: {e}'}]}}, status=400)
+
+            # Round the subtotal before calculating IVA
+            cotizacion.subtotal = calculated_subtotal.quantize(Decimal('0.01'))
+            
+            try:
+                cotizacion.iva_rate = Decimal(request.POST.get('iva_rate', '0.00'))
+            except (ValueError, TypeError):
+                cotizacion.iva_rate = Decimal('0.00') # Default to 0 if conversion fails
+
+            cotizacion.iva_amount = (cotizacion.subtotal * cotizacion.iva_rate).quantize(Decimal('0.01')) # Round IVA amount
+            cotizacion.total = (cotizacion.subtotal + cotizacion.iva_amount).quantize(Decimal('0.01')) # Round final total
+            
+            cotizacion.tipo_cotizacion = request.POST.get('tipo_cotizacion') # Use tipo_cotizacion
+            cotizacion.created_by = request.user  # Asigna el usuario creador
+            cotizacion.save(update_fields=['subtotal', 'iva_rate', 'iva_amount', 'total', 'tipo_cotizacion', 'created_by']) # Incluye created_by
+            print(f"DEBUG: Quote totals updated. Subtotal: {cotizacion.subtotal}, IVA: {cotizacion.iva_amount}, Total: {cotizacion.total}, Quote Type: {cotizacion.tipo_cotizacion}")
+            
+
+            # Save product details after the quote has been saved and its totals calculated
+            for item_data in productos_list:
+                try:
+                    DetalleCotizacion.objects.create(
+                        cotizacion=cotizacion,
+                        nombre_producto=item_data.get('nombre', ''),
+                        descripcion=item_data.get('descripcion', ''),
+                        cantidad=int(item_data.get('cantidad', 1)),
+                        precio_unitario=Decimal(item_data.get('precio', '0.00')),
+                        descuento_porcentaje=Decimal(item_data.get('descuento', '0.00'))
+                    )
+                    print(f"DEBUG: Product detail created: {item_data.get('nombre')}")
+                except (ValueError, TypeError) as e:
+                    print(f"Error saving DetalleCotizacion: {e} for data {item_data}")
+                    # If a detail fails, it's better to delete the entire quote
+                    cotizacion.delete() # Revert the quote if details are invalid
+                    return JsonResponse({'success': False, 'errors': {'__all__': [{'message': f'Error saving product details. Error: {e}'}]}}, status=400)
+
+            
+            pdf_url = reverse('generate_cotizacion_pdf', args=[cotizacion.id])
+            print(f"DEBUG: PDF URL generated: {pdf_url}")
+            
+            return JsonResponse({'success': True, 'pdf_url': pdf_url})
+
+        else:
+            # If the form is not valid, return a JSON response with errors
+            errors_dict = {}
+            for field, field_errors in form.errors.items():
+                errors_dict[field] = [{'message': str(e), 'code': e.code if hasattr(e, 'code') else 'invalid'} for e in field_errors]
+            print(f"DEBUG: Form errors: {errors_dict}")
+            return JsonResponse({'success': False, 'errors': errors_dict}, status=400)
+
+    else: # If the request is GET
+        form = CotizacionForm() # Create an empty form for GET requests
+
+    # Get clients for the frontend selector, filtering by user if not supervisor
+    if is_supervisor(request.user):
+        clientes_queryset = Cliente.objects.all()
+    else:
+        clientes_queryset = Cliente.objects.filter(asignado_a=request.user)
+
+    # Use .values() to get dictionaries and map field names
+    clientes_para_frontend = clientes_queryset.values(
+        'id', 'nombre_empresa', 'direccion', 'email'
+    )
+
+    # Convert the QuerySet to a list of dictionaries with the field names expected by the frontend
+    clientes_data_json = []
+    for c in clientes_para_frontend:
+        clientes_data_json.append({
+            'id': str(c['id']),
+            'name': c['nombre_empresa'],
+            'address': c['direccion'],
+            'taxId': c['email'] # Or the field you use for Tax ID
+        })
+
+    context = {
+        'form': form,
+        'cliente_seleccionado': cliente_seleccionado, # Pass the client object if it comes from the URL
+        'clientes_data_json': json.dumps(clientes_data_json), # Pass the JSON of clients for JS
+        'cliente_id_inicial': cliente_id, # Pass the initial ID for JS to pre-select
+    }
+    return render(request, 'crear_cotizacion.html', context)
+
+
+@login_required
+def generate_cotizacion_pdf(request, cotizacion_id):
+    """
+    View to generate the PDF of a specific quote.
+    """
+    print(f"DEBUG: Starting generate_cotizacion_pdf for quote ID: {cotizacion_id}")
+    cotizacion = get_object_or_404(Cotizacion, pk=cotizacion_id)
+    print(f"DEBUG: Quote found: {cotizacion.id} - Quote Type: {cotizacion.tipo_cotizacion}")
+    
+    # Ensure that the user has permission to view this quote
+    if not is_supervisor(request.user) and cotizacion.created_by != request.user:
+        print(f"DEBUG: Access denied for user {request.user.username} to quote {cotizacion.id}")
+        return HttpResponse("Access denied.", status=403)
+
+    detalles_cotizacion = DetalleCotizacion.objects.filter(cotizacion=cotizacion)
+    print(f"DEBUG: Quote details found: {detalles_cotizacion.count()}")
+
+    # Calculate IVA as a percentage to display in the PDF
+    # cotizacion.iva_rate is already the decimal value (e.g., 0.08 or 0.16)
+    iva_rate_percentage = (cotizacion.iva_rate * Decimal('100')).quantize(Decimal('1'))
+    print(f"DEBUG: IVA rate: {iva_rate_percentage}%")
+
+    # --- Get the name for the PDF ---
+    pdf_name_raw = ""
+    if hasattr(cotizacion, 'nombre_cotizacion') and cotizacion.nombre_cotizacion:
+        pdf_name_raw = cotizacion.nombre_cotizacion
+    elif hasattr(cotizacion, 'titulo') and cotizacion.titulo:
+        pdf_name_raw = cotizacion.titulo
+    else:
+        pdf_name_raw = f"Cotizacion_{cotizacion.id}"
+
+    pdf_name = "".join(c if c.isalnum() or c in ('_', '-') else '_' for c in pdf_name_raw).strip()
+    pdf_name = pdf_name.replace(' ', '_')
+
+    if not pdf_name:
+        pdf_name = f"Cotizacion_{cotizacion.id}"
+    print(f"DEBUG: PDF file name: {pdf_name}.pdf")
+
+    # --- Logic to handle logo and company information based on quote type ---
+    tipo_cotizacion = cotizacion.tipo_cotizacion 
+    logo_base64 = ""
+    company_name = ""
+    company_address = ""
+    company_phone = ""
+    company_email = ""
+    template_name = 'cotizacion_pdf_template.html' # Default template
+
+    if tipo_cotizacion == 'Bajanet':
+        try:
+            logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'img', 'bajanet_logo.png')
+            with open(logo_path, "rb") as image_file:
+                logo_base64 = base64.b64encode(image_file.read()).decode('utf-8')
+            print(f"DEBUG: BAJANET logo loaded from: {logo_path}")
+        except FileNotFoundError:
+            print(f"Warning: BAJANET logo not found in {logo_path}")
+            logo_base64 = ""
+        company_name = 'BAJANET S.A. de C.V.'
+        company_address = 'Calle Ficticia #123, Colonia Ejemplo, Ciudad de México'
+        company_phone = '+52 55 1234 5678'
+        company_email = 'ventas@bajanet.com'
+        template_name = 'cotizacion_pdf_template.html'
+    elif tipo_cotizacion == 'Iamet':
+        logo_base64 = "" 
+        company_name = 'IAMET S.A. de C.V.'
+        company_address = 'Av. Principal #456, Col. Centro, Guadalajara, Jalisco'
+        company_phone = '+52 33 9876 5432'
+        company_email = 'contacto@iamet.com'
+        template_name = 'iamet_cotizacion_pdf_template.html'
+        print(f"DEBUG: Configuration for IAMET. Using template: {template_name}")
+    else:
+        print(f"DEBUG: Unknown or null quote type: '{tipo_cotizacion}'. Using default configuration.")
+        logo_base64 = ""
+        company_name = 'Tu Empresa de Ventas S.A. de C.V.'
+        company_address = 'Calle Ficticia #123, Colonia Ejemplo, Ciudad de México'
+        company_phone = '+52 55 1234 5678'
+        company_email = 'ventas@tuempresa.com'
+        template_name = 'cotizacion_pdf_template.html'
+
+    context = {
+        'cotizacion': cotizacion,
+        'detalles_cotizacion': detalles_cotizacion,
+        'request_user': request.user,
+        'current_date': date.today(),
+        'company_name': company_name,
+        'company_address': company_address,
+        'company_phone': company_phone,
+        'company_email': company_email,
+        'logo_base64': logo_base64,
+        'iva_rate_percentage': iva_rate_percentage,
+    }
+
+    try:
+        print(f"DEBUG: Attempting to render template: {template_name}")
+        html_string = render_to_string(template_name, context)
+        print("DEBUG: Template rendered to HTML string.")
+    except Exception as e:
+        print(f"ERROR: Error rendering template '{template_name}': {e}")
+        return HttpResponse(f"Internal server error rendering PDF: {e}", status=500)
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{pdf_name}.pdf"'
+
+    try:
+        print("DEBUG: Attempting to generate PDF with WeasyPrint.")
+        HTML(string=html_string).write_pdf(response)
+        print("DEBUG: PDF generated successfully.")
+    except Exception as e:
+        print(f"ERROR: Error generating PDF with WeasyPrint: {e}")
+        return HttpResponse(f"Internal server error generating PDF: {e}", status=500)
+        
+    return response
+
+
+from django.contrib.auth.models import User
+from django.contrib.auth.decorators import user_passes_test
+
+def supervisor_required(view_func):
+    decorated_view_func = login_required(user_passes_test(is_supervisor)(view_func))
+    return decorated_view_func
+
+@supervisor_required
+def reporte_usuarios(request):
+    usuarios = User.objects.all().order_by('username')
+    return render(request, 'reporte_usuarios.html', {'usuarios': usuarios})
+
+@supervisor_required
+def perfil_usuario(request, usuario_id):
+    from datetime import date
+    usuario = get_object_or_404(User, id=usuario_id)
+    oportunidades = TodoItem.objects.filter(usuario=usuario).select_related('cliente')
+
+    today = date.today()
+    mes_actual = str(today.month).zfill(2)
+    # Oportunidades del mes actual
+    oportunidades_mes = oportunidades.filter(mes_cierre=mes_actual)
+
+    # Oportunidad más grande (1-99% probabilidad, cualquier mes)
+    oportunidad_mayor = oportunidades.filter(probabilidad_cierre__gte=1, probabilidad_cierre__lte=99).order_by('-monto').first()
+
+    # Total cobrado del mes actual (probabilidad 100%)
+    oportunidades_cobradas_mes = oportunidades_mes.filter(probabilidad_cierre=100)
+    monto_total_cobrado_mes = oportunidades_cobradas_mes.aggregate(suma=Sum('monto'))['suma'] or 0
+
+    # Oportunidades por cobrar del mes actual (probabilidad > 70% y < 100%)
+    oportunidades_por_cobrar_mes = oportunidades_mes.filter(probabilidad_cierre__gt=70, probabilidad_cierre__lt=100)
+    monto_total_por_cobrar_mes = oportunidades_por_cobrar_mes.aggregate(suma=Sum('monto'))['suma'] or 0
+
+    # Oportunidades creadas en el mes actual (año y mes actual)
+    oportunidades_creadas_mes = oportunidades.filter(fecha_creacion__year=today.year, fecha_creacion__month=today.month)
+    oportunidades_creadas_mes_count = oportunidades_creadas_mes.count()
+
+    context = {
+        'usuario': usuario,
+        'oportunidades': oportunidades.order_by('-monto'),
+        'oportunidad_mayor': oportunidad_mayor,
+        'oportunidades_cobradas_mes': oportunidades_cobradas_mes,
+        'monto_total_cobrado_mes': monto_total_cobrado_mes,
+        'oportunidades_por_cobrar_mes': oportunidades_por_cobrar_mes,
+        'monto_total_por_cobrar_mes': monto_total_por_cobrar_mes,
+        'mes_actual': today.strftime('%B').capitalize(),
+        'oportunidades_creadas_mes_count': oportunidades_creadas_mes_count,
+    }
+    return render(request, 'perfil_usuario.html', context)
+
+
+from django.template.context_processors import request as request_context
+
+def add_is_supervisor_to_context(request):
+    return {'is_supervisor': is_supervisor(request.user) if request.user.is_authenticated else False}
+
+@login_required
+def cotizaciones_view(request):
+    user = request.user
+    is_supervisor = user.groups.filter(name='Supervisores').exists()
+    if is_supervisor:
+        clientes = Cliente.objects.all().order_by('nombre_empresa')
+    else:
+        clientes = Cliente.objects.filter(asignado_a=user).order_by('nombre_empresa')
+
+    clientes_data = []
+    for cliente in clientes:
+        if is_supervisor:
+            cotizaciones = Cotizacion.objects.filter(cliente=cliente)
+        else:
+            cotizaciones = Cotizacion.objects.filter(cliente=cliente, created_by=user)
+        cotizaciones_list = [
+            {
+                'nombre': c.nombre_cotizacion or c.titulo or f'Cotización #{c.id}',
+                'descargar_url': f"/cotizacion/pdf/{c.id}/"
+            }
+            for c in cotizaciones
+        ]
+        clientes_data.append({
+            'id': cliente.id,
+            'nombre': cliente.contacto_principal or cliente.nombre_empresa,
+            'empresa': cliente.nombre_empresa,
+            'cotizaciones': cotizaciones_list
+        })
+    return render(request, 'cotizaciones.html', {
+        'clientes_asignados': clientes_data,
+        'is_supervisor': is_supervisor
+    })
+
+@login_required
+def cotizaciones_por_cliente_view(request, cliente_id):
+    user = request.user
+    is_supervisor = user.groups.filter(name='Supervisores').exists()
+    cliente = get_object_or_404(Cliente, id=cliente_id)
+    if is_supervisor:
+        cotizaciones = Cotizacion.objects.filter(cliente=cliente)
+    else:
+        cotizaciones = Cotizacion.objects.filter(cliente=cliente, created_by=user)
+    cotizaciones_list = [
+        {
+            'id': c.id,
+            'nombre_cotizacion': c.nombre_cotizacion or c.titulo or f'Cotización #{c.id}',
+            'descargar_url': f"/cotizacion/pdf/{c.id}/"
+        }
+        for c in cotizaciones
+    ]
+    return render(request, 'cotizaciones_cliente.html', {
+        'cliente': cliente,
+        'cotizaciones': cotizaciones_list,
+        'is_supervisor': is_supervisor
+    })

@@ -9,9 +9,17 @@
 <div class="mt-8 bg-gray-900 text-gray-100 p-8 rounded-lg shadow-2xl border border-gray-700">
     <div class="flex justify-between items-center mb-6"> {# Contenedor para título y botón #}
         <h1 class="text-3xl font-extrabold text-white">Todas las Oportunidades</h1>
-        <button id="toggleFilterButton" class="bg-gray-700 hover:bg-gray-600 text-gray-100 text-sm font-semibold py-2 px-4 rounded-md shadow-sm transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75">
-            Mostrar Filtros
-        </button>
+        <div class="flex items-center gap-2">
+            <div class="relative w-full max-w-xs">
+                <input id="searchOportunidad" type="text" placeholder="Buscar oportunidad por nombre..." class="w-full px-4 py-2 pl-10 rounded-lg bg-gray-800 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition" oninput="filtrarOportunidades()">
+                <span class="absolute left-3 top-2.5 text-gray-400 cursor-pointer" onclick="ampliarBusquedaOportunidad()">
+                    <i data-lucide="search" class="lucide w-5 h-5"></i>
+                </span>
+            </div>
+            <button id="toggleFilterButton" class="bg-gray-700 hover:bg-gray-600 text-gray-100 text-sm font-semibold py-2 px-4 rounded-md shadow-sm transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75">
+                Mostrar Filtros
+            </button>
+        </div>
     </div>
     <p class="text-gray-300 mb-8 text-center">Aquí puedes ver y gestionar todas tus oportunidades de venta.</p>
 
@@ -52,10 +60,10 @@
                     <th scope="col" class="relative px-6 py-3"><span class="sr-only">Acciones</span></th>
                 </tr>
             </thead>
-            <tbody class="bg-gray-800 divide-y divide-gray-700">
+            <tbody class="bg-gray-800 divide-y divide-gray-700" id="tablaOportunidades">
                 {% for item in items %}
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{{ item.oportunidad }}</td>
+                <tr class="oportunidad-item">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white nombre-oportunidad">{{ item.oportunidad }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ item.get_area_display }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ item.contacto }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ item.get_producto_display }}</td>
@@ -93,39 +101,60 @@
 
 </div>
 
+<script src="https://unpkg.com/lucide-icons@latest"></script>
 <script>
+    lucide.createIcons();
+    function filtrarOportunidades() {
+        const input = document.getElementById('searchOportunidad');
+        const filtro = input.value.toLowerCase();
+        const items = document.querySelectorAll('.oportunidad-item');
+        items.forEach(item => {
+            const nombre = item.querySelector('.nombre-oportunidad').textContent.toLowerCase();
+            item.style.display = nombre.includes(filtro) ? '' : 'none';
+        });
+    }
+    function ampliarBusquedaOportunidad() {
+        const input = document.getElementById('searchOportunidad');
+        input.classList.toggle('text-2xl');
+        input.classList.toggle('py-4');
+        input.focus();
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         // Aplicar clases de Tailwind a los elementos del formulario de filtros
-        const filterFormFields = document.querySelectorAll('#filterForm select, #filterForm input[type="number"], #filterForm input[type="text"]');
-        filterFormFields.forEach(field => {
-            field.classList.add('mt-1', 'block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-600', 'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-blue-500', 'focus:border-blue-500', 'sm:text-sm', 'bg-gray-700', 'text-gray-100');
-        });
-
-        // Lógica para mostrar/ocultar el formulario de filtros
-        const toggleButton = document.getElementById('toggleFilterButton');
         const filterForm = document.getElementById('filterForm');
-
-        toggleButton.addEventListener('click', function() {
-            filterForm.classList.toggle('hidden');
-            if (filterForm.classList.contains('hidden')) {
-                toggleButton.textContent = 'Mostrar Filtros';
-            } else {
-                toggleButton.textContent = 'Ocultar Filtros';
-            }
-        });
-
-        // Si el formulario ya tiene filtros aplicados al cargar la página, mostrarlo por defecto
-        const urlParams = new URLSearchParams(window.location.search);
-        let hasFilters = false;
-        for (const [key, value] of urlParams.entries()) {
-            if (value && key !== 'page') { // Excluye el parámetro de paginación si lo tuvieras
-                hasFilters = true;
-                break;
-            }
+        const toggleButton = document.getElementById('toggleFilterButton');
+        if (filterForm) {
+            const filterFormFields = filterForm.querySelectorAll('select, input[type="number"], input[type="text"]');
+            filterFormFields.forEach(field => {
+                field.classList.add('mt-1', 'block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-600', 'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-blue-500', 'focus:border-blue-500', 'sm:text-sm', 'bg-gray-700', 'text-gray-100');
+            });
         }
-        if (hasFilters) {
-            filterForm.classList.remove('hidden');
-            toggleButton.textContent = 'Ocultar Filtros';
+        // Lógica para mostrar/ocultar el formulario de filtros
+        if (toggleButton && filterForm) {
+            toggleButton.addEventListener('click', function() {
+                filterForm.classList.toggle('hidden');
+                if (filterForm.classList.contains('hidden')) {
+                    toggleButton.textContent = 'Mostrar Filtros';
+                } else {
+                    toggleButton.textContent = 'Ocultar Filtros';
+                }
+            });
+        }
+        // Si el formulario ya tiene filtros aplicados al cargar la página, mostrarlo por defecto
+        if (filterForm) {
+            const urlParams = new URLSearchParams(window.location.search);
+            let hasFilters = false;
+            for (const [key, value] of urlParams.entries()) {
+                if (value && key !== 'page') { // Excluye el parámetro de paginación si lo tuvieras
+                    hasFilters = true;
+                    break;
+                }
+            }
+            if (hasFilters) {
+                filterForm.classList.remove('hidden');
+                if (toggleButton) toggleButton.textContent = 'Ocultar Filtros';
+            }
         }
     });
 </script>

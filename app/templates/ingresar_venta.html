@@ -70,6 +70,15 @@
                     {% if form.cliente.errors %}<p class="text-red-400 text-xs mt-1">{{ form.cliente.errors }}</p>{% endif %}
                 </div>
 
+                <!-- Campo: Usuario (solo para supervisores) -->
+                {% if form.usuario %}
+                <div>
+                    <label for="{{ form.usuario.id_for_label }}" class="block text-sm font-semibold text-gray-200 mb-2">Vendedor Responsable</label>
+                    {{ form.usuario|add_class:"form-input-modern" }}
+                    {% if form.usuario.errors %}<p class="text-red-400 text-xs mt-1">{{ form.usuario.errors }}</p>{% endif %}
+                </div>
+                {% endif %}
+
                 <!-- Campo: Contacto del Cliente -->
                 <div>
                     <label for="{{ form.contacto.id_for_label }}" class="block text-sm font-semibold text-gray-200 mb-2">Contacto del Cliente</label>

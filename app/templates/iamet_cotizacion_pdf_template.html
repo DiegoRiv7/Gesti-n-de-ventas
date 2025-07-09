@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cotización IAMET - {{ cotizacion.descripcion|default:"Sin Nombre" }}</title>
+  <style>
+    /* Importa la fuente Inter de Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+    /* Reseteo básico de box-sizing */
+    * {
+      box-sizing: border-box;
+    }
+
+    /* Estilos para el cuerpo del documento */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      color: #111827; /* Texto oscuro para fondo claro */
+      background: #ffffff; /* Fondo blanco principal */
+      -webkit-print-color-adjust: exact; /* Asegura que los colores de fondo se impriman */
+      print-color-adjust: exact;
+    }
+
+    /* Contenedor principal del documento */
+    .container {
+      width: 99vw;
+      max-width: 99vw;
+      padding: 0 0.5vw;
+      margin: 0 auto;
+    }
+
+    /* Estilos para el encabezado (logo e información de la empresa) */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      background: linear-gradient(90deg, #e0f2f7 0%, #b2ebf2 100%); /* Degradado claro para el fondo del encabezado */
+      color: #004d40; /* Texto oscuro para el encabezado */
+      padding: 30px 40px;
+      border-bottom: none;
+      box-shadow: 0 4px 16px rgba(44,83,100,0.08);
+    }
+
+    /* Estilos para el título del logo en el encabezado */
+    .header .logo h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+      max-width: 300px;
+      line-height: 1.2;
+      color: #004d40; /* Color específico para el título del logo IAMET */
+    }
+
+    /* Estilos para los detalles de la empresa en el encabezado */
+    .company-details {
+      font-size: 12px;
+      text-align: right;
+      color: #004d40; /* Texto oscuro para los detalles de la empresa */
+    }
+
+    /* Margen para los párrafos dentro de los detalles de la empresa */
+    .company-details p {
+      margin: 2px 0;
+    }
+
+    /* Estilos generales para las secciones de contenido */
+    .section {
+      padding: 20px 0.5vw;
+      background-color: #ffffff; /* Fondo blanco para las secciones */
+      margin-bottom: 15px;
+      border-radius: 8px; /* Bordes redondeados */
+      border: 1px solid #e5e7eb; /* Borde sutil para las secciones */
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 99vw;
+    }
+
+    /* Estilos para los títulos de sección (h2) */
+    h2 {
+      font-size: 16px;
+      margin-bottom: 8px;
+      color: #00796b; /* Color verde azulado para los títulos de IAMET */
+    }
+
+    /* Contenedor para la información del cliente y cotización */
+    .info-grid {
+      display: flex;
+      justify-content: space-between;
+      gap: 40px;
+      width: 100%;
+      max-width: 100vw;
+    }
+
+    /* Estilos para los párrafos dentro de la cuadrícula de información */
+    .info-grid p {
+      font-size: 13px;
+      margin: 2px 0;
+      color: #374151; /* Texto gris oscuro */
+    }
+
+    /* Estilos para el nombre del cliente en grande */
+    .client-name-only-large {
+        font-size: 22px;
+        font-weight: 700;
+        color: #111827;
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+
+    /* Estilos para las tablas */
+    table {
+      width: 100%;
+      max-width: 99vw;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+
+    /* Estilos para los encabezados y celdas de la tabla */
+    th, td {
+      padding: 8px 8px;
+      border-bottom: 1px solid #e5e7eb;
+      color: #111827;
+    }
+
+    /* Estilos para los encabezados de la tabla */
+    th {
+      background: #e0f2f7; /* Fondo azul claro para encabezados de tabla IAMET */
+      font-weight: 600;
+      font-size: 12px;
+      text-align: left;
+      color: #004d40; /* Texto oscuro para encabezados de tabla IAMET */
+    }
+
+    /* Alineación de texto a la derecha para celdas específicas */
+    td.text-right {
+      text-align: right;
+    }
+
+    /* Estilos para la tabla de totales */
+    .totals {
+      max-width: 350px;
+      margin-left: auto;
+      margin-top: 15px;
+      font-size: 14px;
+      background-color: #f0fdf4; /* Fondo muy claro para totales IAMET */
+      border-radius: 8px;
+      padding: 10px 15px;
+      border: 1px solid #d1fae5; /* Borde sutil IAMET */
+    }
+
+    /* Padding para las celdas de totales */
+    .totals td {
+      padding: 6px 0;
+      border-bottom: none;
+    }
+
+    /* Estilos para las etiquetas de los totales */
+    .totals .label {
+      color: #4b5563;
+      text-align: left;
+    }
+
+    /* Estilos para los valores de los totales */
+    .totals .value {
+      text-align: right;
+      font-weight: 600;
+    }
+
+    /* Estilos para la fila del total final */
+    .totals .total {
+      font-size: 16px;
+      font-weight: 700;
+      border-top: 3px solid #00796b; /* Borde verde azulado para el total IAMET */
+      color: #00796b; /* Color verde azulado para el total IAMET */
+      padding-top: 8px;
+    }
+
+    /* Estilos para notas y términos */
+    .notes,
+    .terms {
+      font-size: 12px;
+      color: #4b5563;
+      line-height: 1.6;
+    }
+
+    /* Estilos para el pie de página */
+    .footer {
+      background: linear-gradient(90deg, #e0f2f7 0%, #b2ebf2 100%); /* Degradado claro para el fondo del pie de página */
+      color: #004d40; /* Texto oscuro para el pie de página */
+      padding: 20px 40px;
+      text-align: center;
+      font-size: 11px;
+      border-top: 1px solid #d1fae5;
+      margin-top: 20px;
+      border-radius: 0 0 16px 16px;
+      box-shadow: 0 -2px 8px rgba(44,83,100,0.04);
+    }
+
+    /* Pie de página para paginación con PDF avanzados */
+    @media print {
+      .footer-paginacion {
+        position: fixed;
+        bottom: 8px;
+        right: 24px;
+        width: auto;
+        text-align: right;
+        font-size: 11px;
+        color: #004d40;
+        background: none;
+        border: none;
+        margin: 0;
+        padding: 0;
+        letter-spacing: 1px;
+      }
+      body, html, .container, .section {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 99vw !important;
+        max-width: 99vw !important;
+        box-sizing: border-box;
+      }
+    }
+    /* Para herramientas como wkhtmltopdf o WeasyPrint */
+    @page {
+      margin: 12mm;
+      @bottom-right {
+        content: counter(page) "/" counter(pages);
+        color: #004d40;
+        font-size: 11px;
+      }
+    }
+    tr { page-break-inside: avoid; }
+    .footer-paginacion { display: none !important; }
+
+    td.descripcion {
+      text-align: justify;
+      text-justify: inter-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header" style="background: linear-gradient(90deg, #e0f2f7 0%, #b2ebf2 100%); color: #004d40; box-shadow: 0 4px 16px rgba(44,83,100,0.08); border-bottom: none;">
+      <div class="logo">
+        <img src="https://discoverbusiness.net/wp-content/uploads/2024/06/20230525180241logo_iamet.jpg" alt="Logo IAMET" style="max-height: 70px; border-radius: 10px; box-shadow: 0 2px 8px rgba(44,83,100,0.10); background: #fff; padding: 6px;">
+      </div>
+      <div class="company-details" style="color: #004d40;">
+        <strong style="font-size: 18px; letter-spacing: 1px;">IAMET S.A. de C.V.</strong><br>
+        <p>📞 +52 664 380 8935</p>
+        <p>🌐 https://iamet.mx</p>
+      </div>
+    </div>
+
+    <div class="section info-grid" style="background: #f8fafc; border: none; box-shadow: 0 2px 8px rgba(44,83,100,0.04); border-radius: 16px;">
+      <div>
+        <h2 style="color: #2c5364; font-size: 20px; margin-bottom: 6px;">Cliente</h2>
+        <p class="client-name-only-large" style="font-size: 24px; color: #0f2027;">{{ cotizacion.cliente.nombre_empresa }}</p>
+      </div>
+      <div style="text-align: right;">
+        <h2 style="color: #2c5364; font-size: 20px; margin-bottom: 6px;">Cotización</h2>
+        <p><strong>Folio:</strong> #{{ cotizacion.id }}</p>
+        <p><strong>Fecha:</strong> {{ current_date|date:"d/m/Y" }}</p>
+        <p><strong>Vendedor:</strong> {{ cotizacion.created_by.get_full_name|default:cotizacion.created_by.username }}</p>
+      </div>
+    </div>
+
+    <div class="section" style="background: #fff; border: none; box-shadow: 0 2px 8px rgba(44,83,100,0.04); border-radius: 16px;">
+      <h2 style="color: #2c5364;">Detalle de Productos</h2>
+      <table style="background: #f8fafc; border-radius: 10px; overflow: hidden;">
+        <thead>
+          <tr style="background: #e0f2f7; color: #0f2027;">
+            <th>No. Partida</th>
+            <th>PRODUCTO</th>
+            <th>DESCRIPCIÓN</th>
+            <th>CANTIDAD</th>
+            <th>PRECIO UNITARIO</th>
+            <th>DESC. (%)</th>
+            <th>TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for detalle in detalles_cotizacion %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ detalle.nombre_producto }}</td>
+            <td class="descripcion">{{ detalle.descripcion|default:"-" }}</td>
+            <td class="text-right">{{ detalle.cantidad }}</td>
+            <td class="text-right">${{ detalle.precio_unitario|floatformat:2 }}</td>
+            <td class="text-right">{{ detalle.descuento_porcentaje|floatformat:2 }}%</td>
+            <td class="text-right">${{ detalle.get_total_item|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <table class="totals" style="background: #e0f2f7; border-radius: 10px; margin-top: 20px;">
+        <tr>
+          <td class="label">Subtotal:</td>
+          <td class="value">${{ cotizacion.subtotal|floatformat:2 }}</td>
+        </tr>
+        <tr>
+          <td class="label">IVA ({{ iva_rate_percentage|floatformat:0 }}%):</td>
+          <td class="value">${{ cotizacion.iva_amount|floatformat:2 }}</td>
+        </tr>
+        <tr class="total">
+          <td class="label">Total:</td>
+          <td class="value">${{ cotizacion.total|floatformat:2 }} {{ cotizacion.moneda }}</td>
+        </tr>
+      </table>
+    </div>
+
+    {% if cotizacion.descripcion %}
+    <div class="section" style="background: #f8fafc; border: none; box-shadow: 0 2px 8px rgba(44,83,100,0.04); border-radius: 16px;">
+      <h2 style="color: #2c5364;">Notas</h2>
+      <p class="notes">{{ cotizacion.descripcion }}</p>
+    </div>
+    {% endif %}
+
+    <div class="section" style="background: #fff; border: none; box-shadow: 0 2px 8px rgba(44,83,100,0.04); border-radius: 16px;">
+      <h2 style="color: #2c5364;">Términos y Condiciones</h2>
+      <p class="terms">
+        Esta cotización tiene una validez de 30 días desde su emisión. Precios sujetos a cambios sin previo aviso. El pedido se procesará tras la confirmación de la orden de compra. Todos los términos deben ser aceptados previamente.
+        
+        Esta cotización es valida por partida completa, unicamente si se compra de 3 unidades en adelante, de lo contrario se cobrará un flete.
+      </p>
+    </div>
+
+    <div class="footer" style="background: linear-gradient(90deg, #e0f2f7 0%, #b2ebf2 100%); color: #004d40; border-radius: 0 0 16px 16px; box-shadow: 0 -2px 8px rgba(44,83,100,0.04);">
+      &copy; {{ current_date|date:"Y" }} IAMET. Todos los derechos reservados.
+    </div>
+  </div>
+</body>
+</html>
+<!--
+NOTA SOBRE PAGINACIÓN:
+El contador de páginas en HTML solo funciona automáticamente si usas herramientas como wkhtmltopdf, WeasyPrint o similares, usando variables CSS como:
+@page {
+  @bottom-center {
+    content: "Página " counter(page) " de " counter(pages);
+  }
+}
+En navegadores o impresión directa desde el navegador, el script JS solo puede mostrar 1/1 por defecto.
+-->

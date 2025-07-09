@@ -8,7 +8,12 @@
 {% block content %}
 {# Main container for the dashboard, using a darker background #}
 <div class="mt-8 bg-gray-900 text-gray-100 p-8 rounded-lg shadow-2xl border border-gray-700">
-    <h1 class="text-3xl font-extrabold text-white mb-10 text-center tracking-wide">Panel de Desempeño de Oportunidades</h1>
+    <h1 class="text-3xl font-extrabold text-white mb-10 text-center tracking-wide">
+        Panel de Desempeño de Oportunidades
+        {% if is_supervisor %}
+            <span class="ml-4 px-3 py-1 rounded-full bg-blue-700 text-white text-base align-middle font-semibold shadow-md">Supervisor</span>
+        {% endif %}
+    </h1>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 

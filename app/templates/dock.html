@@ -1,0 +1,73 @@
+<aside id="dock">
+    <nav>
+        <ul>
+            <li>
+                <a href="/home/" class="group">
+                    <!-- Home -->
+                    <svg class="dock-icon" viewBox="0 0 24 24">
+                        <path d="M12 2L3 9h3v11h6v-7h6v7h3l-9-7z"/>
+                    </svg>
+                    <span class="text-white">Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="/dashboard/" class="group">
+                    <!-- Dashboard -->
+                    <svg class="dock-icon" viewBox="0 0 24 24">
+                        <rect x="3" y="13" width="7" height="8"/><rect x="14" y="3" width="7" height="18"/>
+                    </svg>
+                    <span class="text-white">Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="/todos/" class="group">
+                    <!-- Oportunidades -->
+                    <svg class="dock-icon" viewBox="0 0 24 24">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4H6zM3.8 6h16.4L18 4H6L3.8 6zM12 10a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/>
+                    </svg>
+                    <span class="text-white">Oportunidades</span>
+                </a>
+            </li>
+            <li>
+                <a href="/cotizaciones/" class="group">
+                    <!-- Cotizaciones -->
+                    <svg class="dock-icon" viewBox="0 0 24 24">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M8 7h8M8 11h8M8 15h6"/>
+                    </svg>
+                    <span class="text-white">Cotizaciones</span>
+                </a>
+            </li>
+            {% if is_supervisor %}
+            <li>
+                <a href="/reporte-usuarios/" class="group">
+                    <!-- Usuarios -->
+                    <svg class="dock-icon" viewBox="0 0 24 24">
+                        <circle cx="12" cy="7" r="4"></circle><path d="M5.5 21v-2a4.5 4.5 0 0 1 9 0v2"></path>
+                    </svg>
+                    <span class="text-white">Usuarios</span>
+                </a>
+            </li>
+            {% endif %}
+            <li>
+                <a href="/reporte-clientes/" class="group">
+                    <!-- Clientes -->
+                    <svg class="dock-icon" viewBox="0 0 24 24">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span class="text-white">Clientes</span>
+                </a>
+            </li>
+            <li>
+            
+                <a href="/logout/" class="group">
+                    <!-- Cerrar Sesión -->
+                    <svg class="dock-icon" viewBox="0 0 24 24">
+                        <path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5"></path><polyline points="17 17 22 12 17 7"></polyline><line x1="22" y1="12" x2="10" y2="12"></line>
+                    </svg>
+                    <span class="text-white">Cerrar Sesión</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</aside>
