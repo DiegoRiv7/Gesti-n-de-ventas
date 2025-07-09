@@ -26,6 +26,8 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     zlib1g-dev \
     libwebp-dev \
+    mysql-client \
+    iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
