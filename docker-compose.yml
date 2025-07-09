@@ -10,8 +10,6 @@ services:
       - mysql_data:/var/lib/mysql
     ports:
       - "3307:3306"
-    networks:
-      - red_proxy
     restart: unless-stopped
 
   django:
@@ -28,14 +26,8 @@ services:
     depends_on:
       - mysql
     restart: unless-stopped
-    networks:
-      - red_proxy
 
 volumes:
   mysql_data:
   static_volume:
   media_volume:
-
-networks:
-  red_proxy:
-    external: true
