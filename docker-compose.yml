@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: cartera_clientes_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: Filipenses4:13
+      MYSQL_ROOT_PASSWORD: Filipenses4:13
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - red_proxy
+    restart: unless-stopped
+
   django:
     build: .
     ports:
@@ -12,18 +27,17 @@ services:
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      - mysql
     restart: unless-stopped
-    # --- AÑADIDO ---
     networks:
       - red_proxy
 
 volumes:
+  mysql_data:
   static_volume:
   media_volume:
 
-# --- AÑADIDO ---
 networks:
   red_proxy:
     external: true

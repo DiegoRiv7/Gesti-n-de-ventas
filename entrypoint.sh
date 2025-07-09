@@ -5,7 +5,7 @@ set -e
 
 # Wait for MySQL to be ready
 echo "Waiting for MySQL to be ready..."
-until mysql -h host.docker.internal -u root -pFilipenses4:13 -e "SELECT 1" &>/dev/null; do
+until mysql -h mysql -u root -pFilipenses4:13 -e "SELECT 1" &>/dev/null; do
     echo "MySQL is not ready yet. Waiting..."
     sleep 2
 done
