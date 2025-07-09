@@ -86,11 +86,11 @@ WSGI_APPLICATION = 'cartera_clientes.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'cartera_clientes_db',  # ¡El nombre de tu base de datos MySQL!
-        'USER': 'root',               # Tu usuario de MySQL
-        'PASSWORD': 'Filipenses4:13', # ¡Tu contraseña de MySQL!
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
+        'NAME': os.environ.get('DB_NAME', 'cartera_clientes_db'),
+        'USER': os.environ.get('DB_USER', 'root'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'Filipenses4:13'),
+        'HOST': os.environ.get('DB_HOST', 'mysql'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         }

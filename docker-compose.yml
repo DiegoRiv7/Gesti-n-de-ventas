@@ -20,6 +20,11 @@ services:
       - DEBUG=False
       - DJANGO_SETTINGS_MODULE=cartera_clientes.settings
       - ALLOWED_HOSTS=*
+      - DB_HOST=mysql
+      - DB_NAME=cartera_clientes_db
+      - DB_USER=root
+      - DB_PASSWORD=Filipenses4:13
+      - DB_PORT=3306
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
