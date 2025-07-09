@@ -20,6 +20,7 @@ services:
       - DEBUG=False
       - DJANGO_SETTINGS_MODULE=cartera_clientes.settings
       - ALLOWED_HOSTS=*
+      - CSRF_TRUSTED_ORIGINS=https://app.zionary.com,http://app.zionary.com,https://www.app.nethive.mx,http://app.nethive.mx,http://139.177.101.46,http://139.177.101.46:8989
       - DB_HOST=mysql
       - DB_NAME=cartera_clientes_db
       - DB_USER=root
