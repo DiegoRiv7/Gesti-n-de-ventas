@@ -125,6 +125,10 @@
         border-color: #38bdf8;
         transform: translateY(-5px) scale(1.035);
     }
+    .glass-card::before {
+        display: none;
+    }
+    .glass-card > * { position: relative; z-index: 1; }
     .animate-gradient-x {
         background-size: 200% 200%;
         animation: gradient-x 2.5s ease-in-out infinite;
