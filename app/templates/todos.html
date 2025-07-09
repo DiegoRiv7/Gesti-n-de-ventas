@@ -1,85 +1,112 @@
-{% extends "base.html" %} {# Extiende la plantilla base #}
-{% load app_filters %} {# Para usar el filtro format_currency_es #}
+{% extends "base.html" %}
+{% load app_filters %}
 
 {% block title %}
     Ver Todas las Ventas
 {% endblock %}
 
 {% block content %}
-<div class="mt-8 bg-gray-900 text-gray-100 p-8 rounded-lg shadow-2xl border border-gray-700">
-    <div class="flex justify-between items-center mb-6"> {# Contenedor para título y botón #}
-        <h1 class="text-3xl font-extrabold text-white">Todas las Oportunidades</h1>
+<div class="mt-8 bg-gradient-to-br from-gray-900 via-gray-950 to-blue-900 text-gray-100 p-8 rounded-3xl shadow-2xl border border-blue-900/60 relative overflow-hidden animate-fade-in">
+    <div class="absolute -top-10 -left-10 w-60 h-60 bg-blue-700/20 rounded-full blur-3xl z-0 animate-pulse"></div>
+    <div class="absolute -bottom-16 right-0 w-80 h-40 bg-blue-400/10 rounded-full blur-2xl z-0 animate-pulse"></div>
+    <div class="flex justify-between items-center mb-6 relative z-10">
+        <h1 class="text-4xl font-extrabold text-white drop-shadow-lg">Todas las Oportunidades</h1>
         <div class="flex items-center gap-2">
             <div class="relative w-full max-w-xs">
-                <input id="searchOportunidad" type="text" placeholder="Buscar oportunidad por nombre..." class="w-full px-4 py-2 pl-10 rounded-lg bg-gray-800 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition" oninput="filtrarOportunidades()">
-                <span class="absolute left-3 top-2.5 text-gray-400 cursor-pointer" onclick="ampliarBusquedaOportunidad()">
+                <input id="searchOportunidad" type="text" placeholder="Buscar oportunidad por nombre..." class="w-full px-4 py-2 pl-10 rounded-lg bg-gray-800/90 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition shadow-md" oninput="filtrarOportunidades()">
+                <span class="absolute left-3 top-2.5 text-blue-400 cursor-pointer hover:scale-110 transition-transform" onclick="ampliarBusquedaOportunidad()">
                     <i data-lucide="search" class="lucide w-5 h-5"></i>
                 </span>
             </div>
-            <button id="toggleFilterButton" class="bg-gray-700 hover:bg-gray-600 text-gray-100 text-sm font-semibold py-2 px-4 rounded-md shadow-sm transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75">
+            <button id="toggleFilterButton" class="bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-800 hover:to-blue-700 text-white text-sm font-semibold py-2 px-4 rounded-lg shadow-lg transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 animate-bounce-short">
                 Mostrar Filtros
             </button>
         </div>
     </div>
-    <p class="text-gray-300 mb-8 text-center">Aquí puedes ver y gestionar todas tus oportunidades de venta.</p>
+    <p class="text-gray-300 mb-8 text-center relative z-10">Aquí puedes ver y gestionar todas tus oportunidades de venta.</p>
 
-    {# Formulario de Filtros - Inicialmente oculto #}
-    <form id="filterForm" method="get" class="hidden mb-8 p-4 bg-gray-800 rounded-lg shadow-sm grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border border-gray-700">
+    <form id="filterForm" method="get" class="hidden mb-8 p-6 bg-gray-900/95 rounded-2xl shadow-xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border border-blue-900/40 transition-all duration-500 ease-in-out" style="max-height:0; opacity:0; overflow:hidden;">
         {% for field in filter_form %}
             <div class="flex flex-col">
-                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-300 mb-1">{{ field.label }}</label>
+                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-blue-200 mb-1">{{ field.label }}</label>
                 {{ field }}
                 {% if field.help_text %}<p class="text-xs text-gray-400 mt-1">{{ field.help_text }}</p>{% endif %}
                 {% if field.errors %}<p class="text-red-400 text-sm mt-1">{{ field.errors }}</p>{% endif %}
             </div>
         {% endfor %}
         <div class="flex items-end justify-end col-span-full md:col-span-1 lg:col-span-1">
-            <button type="submit" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
+            <button type="submit" class="w-full md:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-2 px-4 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
                 Filtrar
             </button>
-            <a href="{% url 'todos' %}" class="w-full md:w-auto ml-2 bg-gray-700 hover:bg-gray-600 text-gray-100 font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75">
+            <a href="{% url 'todos' %}" class="w-full md:w-auto ml-2 bg-gray-700 hover:bg-gray-600 text-gray-100 font-semibold py-2 px-4 rounded-xl shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75">
                 Limpiar Filtros
             </a>
         </div>
     </form>
-    {# FIN FORMULARIO DE FILTROS #}
-
-    <div class="overflow-x-auto">
+    <style>
+    #filterForm select, #filterForm input[type="text"], #filterForm input[type="number"] {
+        background-color: #23272f !important;
+        color: #e0e7ef !important;
+        border: 1.5px solid #143a56 !important;
+        border-radius: 0.75rem !important;
+        box-shadow: 0 1px 4px 0 rgba(20,58,86,0.10);
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    #filterForm select:focus, #filterForm input[type="text"]:focus, #filterForm input[type="number"]:focus {
+        border-color: #2563eb !important;
+        outline: none !important;
+        box-shadow: 0 0 0 2px #2563eb33;
+    }
+    #filterForm select::placeholder, #filterForm input[type="text"]::placeholder, #filterForm input[type="number"]::placeholder {
+        color: #9CA3AF !important;
+        opacity: 1 !important;
+    }
+    </style>
+    <div class="overflow-x-auto relative z-10">
         {% if items %}
-        <table class="min-w-full divide-y divide-gray-700 rounded-lg overflow-hidden">
-            <thead class="bg-gray-800">
+        <table class="min-w-full divide-y divide-blue-900/40 rounded-2xl overflow-hidden shadow-xl bg-gray-900/90 animate-fade-in">
+            <thead class="bg-gradient-to-r from-blue-900/80 to-gray-900/80">
                 <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Oportunidad</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Área</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Contacto</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Producto</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Monto</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Cliente</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Mes Cierre</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Probabilidad</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-blue-200 uppercase tracking-wider">Oportunidad</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-blue-200 uppercase tracking-wider">Área</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-blue-200 uppercase tracking-wider">Contacto</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-blue-200 uppercase tracking-wider">Producto</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-blue-200 uppercase tracking-wider">Monto</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-blue-200 uppercase tracking-wider">Cliente</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-blue-200 uppercase tracking-wider">Mes Cierre</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-blue-200 uppercase tracking-wider">Probabilidad</th>
                     <th scope="col" class="relative px-6 py-3"><span class="sr-only">Acciones</span></th>
                 </tr>
             </thead>
-            <tbody class="bg-gray-800 divide-y divide-gray-700" id="tablaOportunidades">
+            <tbody class="bg-gray-900/80 divide-y divide-blue-900/30" id="tablaOportunidades">
                 {% for item in items %}
-                <tr class="oportunidad-item">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white nombre-oportunidad">{{ item.oportunidad }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ item.get_area_display }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ item.contacto }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ item.get_producto_display }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${{ item.monto|format_currency_es }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{% if item.cliente %}{{ item.cliente.nombre_empresa }}{% else %}N/A{% endif %}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ item.get_mes_cierre_display }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                        <div class="w-full bg-gray-700 rounded-full h-2.5">
-                            <div class="h-2.5 rounded-full" 
-                                 style="width: {{ item.probabilidad_cierre }}%; background-color: hsl({{ item.probabilidad_cierre | div:100 | mul:120 }}, 70%, 50%);">
+                <tr class="oportunidad-item transition duration-200 hover:bg-blue-900/30 hover:shadow-lg hover:scale-[1.01]">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-white nombre-oportunidad">{{ item.oportunidad }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-100">{{ item.get_area_display }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-100">{{ item.contacto }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-100">{{ item.get_producto_display }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-100">${{ item.monto|format_currency_es }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-100">{% if item.cliente %}{{ item.cliente.nombre_empresa }}{% else %}N/A{% endif %}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-100">{{ item.get_mes_cierre_display }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-100">
+                        <div class="flex items-center gap-1">
+                            <div class="w-20 h-2 rounded-full bg-gray-800 relative group cursor-pointer prob-bar" data-id="{{ item.id }}" data-valor="{{ item.probabilidad_cierre }}">
+                                <div class="h-2 rounded-full transition-all duration-500 absolute left-0 top-0" style="width: {{ item.probabilidad_cierre }}%;
+                                    {% if item.probabilidad_cierre <= 50 %}
+                                        background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+                                    {% elif item.probabilidad_cierre <= 69 %}
+                                        background: linear-gradient(90deg, #facc15 0%, #fde68a 100%);
+                                    {% else %}
+                                        background: linear-gradient(90deg, #22c55e 0%, #4ade80 100%);
+                                    {% endif %}"></div>
                             </div>
+                            <span class="text-xs text-blue-300 font-bold w-8 text-right">{{ item.probabilidad_cierre }}%</span>
                         </div>
-                        <span class="mt-1 text-xs text-gray-400">{{ item.probabilidad_cierre }}%</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <a href="{% url 'editar_venta_todoitem' item.id %}" class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                        <a href="{% url 'editar_venta_todoitem' item.id %}" class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md shadow-md text-white bg-gradient-to-r from-indigo-600 to-blue-700 hover:from-indigo-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out transform hover:scale-105">
                             &#9998; Editar
                         </a>
                     </td>
@@ -88,74 +115,137 @@
             </tbody>
         </table>
         {% else %}
-        <p class="text-center text-gray-400 text-lg">No hay oportunidades de venta registradas aún.</p>
+        <p class="text-center text-blue-200 text-lg">No hay oportunidades de venta registradas aún.</p>
         {% endif %}
     </div>
-
-    {# Botón para Registrar Nueva Oportunidad - AÑADIDO AQUÍ #}
-    <div class="mt-8 text-center">
-        <a href="{% url 'ingresar_venta_todoitem' %}" class="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75">
-            Registrar Nueva Oportunidad
+    <div class="mt-8 text-center relative z-10">
+        <a href="{% url 'ingresar_venta_todoitem' %}" class="inline-block bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75">
+            + Agregar Nueva Oportunidad
         </a>
     </div>
-
 </div>
 
-<script src="https://unpkg.com/lucide-icons@latest"></script>
-<script>
-    lucide.createIcons();
-    function filtrarOportunidades() {
-        const input = document.getElementById('searchOportunidad');
-        const filtro = input.value.toLowerCase();
-        const items = document.querySelectorAll('.oportunidad-item');
-        items.forEach(item => {
-            const nombre = item.querySelector('.nombre-oportunidad').textContent.toLowerCase();
-            item.style.display = nombre.includes(filtro) ? '' : 'none';
-        });
-    }
-    function ampliarBusquedaOportunidad() {
-        const input = document.getElementById('searchOportunidad');
-        input.classList.toggle('text-2xl');
-        input.classList.toggle('py-4');
-        input.focus();
-    }
+<div id="probModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-xs animate-fade-in">
+        <h3 class="text-lg font-bold text-blue-200 mb-4 text-center">Editar Probabilidad</h3>
+        <input id="probInput" type="number" min="0" max="100" class="w-full px-4 py-2 rounded-lg bg-gray-800 text-blue-100 border border-blue-900 focus:ring-blue-500 focus:border-blue-500 shadow-sm mb-4 text-center text-2xl font-bold" />
+        <div class="flex gap-2">
+            <button id="probSave" class="flex-1 bg-gradient-to-r from-blue-600 to-green-500 hover:from-blue-700 hover:to-green-600 text-white font-semibold py-2 rounded-lg shadow-md transition">Guardar</button>
+            <button id="probCancel" class="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-100 font-semibold py-2 rounded-lg shadow-md transition">Cancelar</button>
+        </div>
+    </div>
+</div>
 
+<script>
+    // Filtrado por nombre de oportunidad (funciona en tiempo real)
     document.addEventListener('DOMContentLoaded', function() {
-        // Aplicar clases de Tailwind a los elementos del formulario de filtros
+        const input = document.getElementById('searchOportunidad');
+        input.addEventListener('input', function() {
+            const filtro = input.value.toLowerCase();
+            const items = document.querySelectorAll('.oportunidad-item');
+            items.forEach(item => {
+                const nombre = item.querySelector('.nombre-oportunidad').textContent.toLowerCase();
+                item.style.display = nombre.includes(filtro) ? '' : 'none';
+            });
+        });
+        // Filtros animados
         const filterForm = document.getElementById('filterForm');
         const toggleButton = document.getElementById('toggleFilterButton');
-        if (filterForm) {
-            const filterFormFields = filterForm.querySelectorAll('select, input[type="number"], input[type="text"]');
-            filterFormFields.forEach(field => {
-                field.classList.add('mt-1', 'block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-600', 'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-blue-500', 'focus:border-blue-500', 'sm:text-sm', 'bg-gray-700', 'text-gray-100');
-            });
-        }
-        // Lógica para mostrar/ocultar el formulario de filtros
         if (toggleButton && filterForm) {
             toggleButton.addEventListener('click', function() {
+                filterForm.classList.toggle('show');
                 filterForm.classList.toggle('hidden');
-                if (filterForm.classList.contains('hidden')) {
-                    toggleButton.textContent = 'Mostrar Filtros';
-                } else {
+                if (filterForm.classList.contains('show')) {
+                    filterForm.style.maxHeight = '1000px';
+                    filterForm.style.opacity = '1';
+                    filterForm.style.overflow = 'visible';
                     toggleButton.textContent = 'Ocultar Filtros';
+                } else {
+                    filterForm.style.maxHeight = '0';
+                    filterForm.style.opacity = '0';
+                    filterForm.style.overflow = 'hidden';
+                    toggleButton.textContent = 'Mostrar Filtros';
                 }
             });
         }
-        // Si el formulario ya tiene filtros aplicados al cargar la página, mostrarlo por defecto
+        // Mostrar filtros si hay parámetros
         if (filterForm) {
             const urlParams = new URLSearchParams(window.location.search);
             let hasFilters = false;
             for (const [key, value] of urlParams.entries()) {
-                if (value && key !== 'page') { // Excluye el parámetro de paginación si lo tuvieras
+                if (value && key !== 'page') {
                     hasFilters = true;
                     break;
                 }
             }
             if (hasFilters) {
+                filterForm.classList.add('show');
                 filterForm.classList.remove('hidden');
+                filterForm.style.maxHeight = '1000px';
+                filterForm.style.opacity = '1';
+                filterForm.style.overflow = 'visible';
                 if (toggleButton) toggleButton.textContent = 'Ocultar Filtros';
             }
         }
+    });
+    // Probabilidad dinámica with modal
+    let probModal = document.getElementById('probModal');
+    let probInput = document.getElementById('probInput');
+    let probSave = document.getElementById('probSave');
+    let probCancel = document.getElementById('probCancel');
+    let currentBar = null;
+    document.querySelectorAll('.prob-bar').forEach(bar => {
+        bar.addEventListener('click', function(e) {
+            currentBar = bar;
+            probInput.value = bar.getAttribute('data-valor');
+            probModal.classList.remove('hidden');
+            probInput.focus();
+        });
+    });
+    probCancel.addEventListener('click', function() {
+        probModal.classList.add('hidden');
+        currentBar = null;
+        window.location.reload();
+    });
+    probSave.addEventListener('click', function() {
+        let newVal = Math.max(0, Math.min(100, parseInt(probInput.value)));
+        if (currentBar && !isNaN(newVal)) {
+            // Actualiza visualmente la barra
+            let fill = currentBar.querySelector('div');
+            fill.style.width = newVal + '%';
+            if (newVal <= 50) {
+                fill.style.background = 'linear-gradient(90deg, #ef4444 0%, #f87171 100%)';
+            } else if (newVal <= 69) {
+                fill.style.background = 'linear-gradient(90deg, #facc15 0%, #fde68a 100%)';
+            } else {
+                fill.style.background = 'linear-gradient(90deg, #22c55e 0%, #4ade80 100%)';
+            }
+            currentBar.setAttribute('data-valor', newVal);
+            // Actualiza el número
+            currentBar.parentElement.querySelector('span').textContent = newVal + '%';
+            // AJAX para guardar y recargar
+            fetch(`/api/oportunidad/${currentBar.getAttribute('data-id')}/probabilidad/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value },
+                body: JSON.stringify({ probabilidad: newVal })
+            }).then(() => {
+                probModal.classList.add('hidden');
+                currentBar = null;
+                window.location.reload();
+            }).catch(() => {
+                probModal.classList.add('hidden');
+                currentBar = null;
+                window.location.reload();
+            });
+        } else {
+            probModal.classList.add('hidden');
+            currentBar = null;
+            window.location.reload();
+        }
+    });
+    // Cierra modal con ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') probModal.classList.add('hidden');
     });
 </script>
 {% endblock %}

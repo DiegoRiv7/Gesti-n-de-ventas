@@ -58,8 +58,19 @@
                     <span class="text-white">Clientes</span>
                 </a>
             </li>
+            {% if user.is_superuser %}
             <li>
-            
+                <a href="/admin/" class="group">
+                    <!-- Admin Panel -->
+                    <svg class="dock-icon" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke="white" stroke-width="2" fill="none"/>
+                        <path d="M12 8v4l3 3" stroke="white" stroke-width="2" fill="none"/>
+                    </svg>
+                    <span class="text-white">Admin</span>
+                </a>
+            </li>
+            {% endif %}
+            <li>
                 <a href="/logout/" class="group">
                     <!-- Cerrar Sesión -->
                     <svg class="dock-icon" viewBox="0 0 24 24">
@@ -71,3 +82,94 @@
         </ul>
     </nav>
 </aside>
+<style>
+        #dock {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 0.5rem 1.5rem;
+            border-radius: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 1000;
+            transition: all 0.3s ease-in-out;
+            width: 90%;
+            max-width: 90%;
+            height: 64px;
+            border: 2.5px solid transparent;
+        }
+        #dock:hover {
+            background-color: rgba(0, 0, 0, 0.7);
+            border-color: #143a56;
+            box-shadow: 0 4px 32px 0 rgba(20,58,86,0.35), 0 1.5px 8px 0 rgba(0,0,0,0.10);
+        }
+        #dock .dock-icon {
+            width: var(--dock-icon-size, 36px);
+            height: var(--dock-icon-size, 36px);
+            fill: none;
+            stroke: #ffffff;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0;
+            transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease-in-out;
+        }
+        #dock:hover .dock-icon {
+            opacity: 1;
+        }
+        #dock nav ul {
+            display: flex;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #dock nav li a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+            font-size: 0.75rem;
+            transition: color 0.2s ease-out, background-color 0.2s ease-out;
+            position: relative;
+            padding: var(--dock-item-padding, 0.5rem);
+            border-radius: 0.75rem;
+            background-color: transparent;
+            margin: 0 0.5rem;
+        }
+        #dock nav li a:hover .dock-icon {
+            transform: scale(1.8);
+        }
+        #dock nav li a span {
+            opacity: 0;
+            position: absolute;
+            bottom: var(--dock-text-bottom, -25px);
+            white-space: nowrap;
+            transition: opacity 0.2s ease-out;
+            pointer-events: none;
+            background-color: rgba(0, 0, 0, 0.85);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.3rem;
+            font-size: 0.7rem;
+            z-index: 1001;
+        }
+        #dock nav li a:hover {
+            color: #e2e8f0;
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+        #dock nav li a:hover span {
+            opacity: 1;
+        }
+        #dock nav li a:active {
+            background-color: rgba(56, 189, 248, 0.18);
+            color: #38bdf8;
+            box-shadow: 0 1px 4px 0 rgba(56,189,248,0.18);
+            transform: translateY(-2px) scale(0.98);
+        }
+    </style>

@@ -68,4 +68,10 @@ urlpatterns = [
 
     # Ruta raíz redirige al dashboard
     path("", views.dashboard, name="root_dashboard"),
+
+    # API para actualizar la probabilidad de una oportunidad
+    path('api/oportunidad/<int:id>/probabilidad/', views.actualizar_probabilidad, name='actualizar_probabilidad'),
+
+    # API para crear clientes desde el modal
+    path('api/crear-cliente/', views.crear_cliente_api, name='crear_cliente_api'),
 ]

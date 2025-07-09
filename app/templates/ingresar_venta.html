@@ -1,219 +1,75 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrar Nueva Venta</title>
-    <!-- Carga de Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Estilos personalizados para la fuente Inter */
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Estilos base para todos los inputs */
-        /* Hacemos esta clase más específica para asegurar que sobrescriba otros estilos */
-        .form-input-modern {
-            /* Colores oscuros para el fondo, borde y texto */
-            background-color: #374151; /* gray-700 */
-            border-color: #4B5563; /* gray-600 */
-            color: #F9FAFB; /* gray-50 */
-            /* Padding y bordes redondeados */
-            padding-left: 1.25rem; /* px-5 */
-            padding-right: 1.25rem; /* px-5 */
-            padding-top: 0.875rem; /* py-3.5 */
-            padding-bottom: 0.875rem; /* py-3.5 */
-            border-radius: 0.75rem; /* rounded-xl */
-            display: block;
-            width: 100%;
-            /* Foco y sombra */
-            outline: none;
-            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.5); /* shadow-inner shadow-gray-900/50 */
-            transition: all 0.2s ease-in-out;
-        }
-
-        /* Estilos para el foco */
-        .form-input-modern:focus {
-            border-color: #3B82F6; /* blue-500 */
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5), inset 0 2px 4px 0 rgba(0, 0, 0, 0.5); /* ring-2 ring-blue-500 */
-        }
-
-        /* Estilo para el placeholder */
-        .form-input-modern::placeholder {
-            color: #9CA3AF; /* gray-400 */
-        }
-    </style>
-</head>
-<body class="bg-gradient-to-br from-gray-900 to-gray-950 text-gray-100 min-h-screen flex items-center justify-center p-6">
-    <div class="bg-gray-800 p-8 md:p-12 rounded-3xl shadow-2xl w-full max-w-2xl border border-gray-700 transform transition-all duration-300 hover:scale-[1.01]">
-        <h2 class="text-5xl font-extrabold text-center mb-4 text-gray-50 tracking-tight leading-tight">Registrar Nueva Venta</h2>
-        <p class="text-center text-gray-300 mb-10 text-lg max-w-md mx-auto">Ingresa todos los detalles para una nueva oportunidad de venta.</p>
-
-        <!-- Este es un formulario de ejemplo. Debes reemplazarlo con tu etiqueta <form> de Django -->
-        <form method="post">
-            {% csrf_token %} {# Asegúrate de tener esto en tu formulario Django para seguridad #}
-            {% load widget_tweaks %} {# ¡IMPORTANTE! Carga widget_tweaks aquí, FUERA DEL FORMULARIO #}
-
-            <!-- Campos principales en dos columnas en pantallas grandes -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <!-- Campo: Oportunidad -->
-                <div>
-                    <label for="{{ form.oportunidad.id_for_label }}" class="block text-sm font-semibold text-gray-200 mb-2">Oportunidad</label>
-                    {{ form.oportunidad|add_class:"form-input-modern"|attr:"placeholder:Ej: Proyecto X para Cliente Y" }}
-                    {% if form.oportunidad.errors %}<p class="text-red-400 text-xs mt-1">{{ form.oportunidad.errors }}</p>{% endif %}
-                </div>
-
-                <!-- Campo: Cliente -->
-                <div>
-                    <label for="{{ form.cliente.id_for_label }}" class="block text-sm font-semibold text-gray-200 mb-2">Cliente</label>
-                    {{ form.cliente|add_class:"form-input-modern"|attr:"placeholder:Ej: Nombre de la Empresa S.A." }}
-                    {% if form.cliente.errors %}<p class="text-red-400 text-xs mt-1">{{ form.cliente.errors }}</p>{% endif %}
-                </div>
-
-                <!-- Campo: Usuario (solo para supervisores) -->
-                {% if form.usuario %}
-                <div>
-                    <label for="{{ form.usuario.id_for_label }}" class="block text-sm font-semibold text-gray-200 mb-2">Vendedor Responsable</label>
-                    {{ form.usuario|add_class:"form-input-modern" }}
-                    {% if form.usuario.errors %}<p class="text-red-400 text-xs mt-1">{{ form.usuario.errors }}</p>{% endif %}
-                </div>
-                {% endif %}
-
-                <!-- Campo: Contacto del Cliente -->
-                <div>
-                    <label for="{{ form.contacto.id_for_label }}" class="block text-sm font-semibold text-gray-200 mb-2">Contacto del Cliente</label>
-                    {{ form.contacto|add_class:"form-input-modern"|attr:"placeholder:Nombre del contacto principal" }}
-                    {% if form.contacto.errors %}<p class="text-red-400 text-xs mt-1">{{ form.contacto.errors }}</p>{% endif %}
-                </div>
-
-                <!-- Campo: Área -->
-                <div>
-                    <label for="{{ form.area.id_for_label }}" class="block text-sm font-semibold text-gray-200 mb-2">Área</label>
-                    {{ form.area|add_class:"form-input-modern"|attr:"placeholder:Ej: Ventas, Marketing, IT" }}
-                    {% if form.area.errors %}<p class="text-red-400 text-xs mt-1">{{ form.area.errors }}</p>{% endif %}
-                </div>
-            </div>
-
-            <!-- Campos de una sola columna -->
-            <div class="mb-6">
-                <!-- Campo: Producto / Servicio -->
-                <div class="mb-6">
-                    <label for="{{ form.producto.id_for_label }}" class="block text-sm font-semibold text-gray-200 mb-2">Producto / Servicio</label>
-                    {{ form.producto|add_class:"form-input-modern"|attr:"placeholder:Ej: Consultoría de Marketing Digital" }}
-                    {% if form.producto.errors %}<p class="text-red-400 text-xs mt-1">{{ form.producto.errors }}</p>{% endif %}
-                </div>
-
-                <!-- Monto de la Oportunidad ($) -->
-                <div class="mb-6">
-                    <label for="{{ form.monto.id_for_label }}" class="block text-sm font-semibold text-gray-200 mb-2">Monto de la Oportunidad ($)</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 text-xl font-bold pointer-events-none">$</span>
-                        {# CAMBIO CLAVE AQUÍ: Se añade type="text" para evitar las flechas de input number #}
-                        {{ form.monto|add_class:"form-input-modern pl-10"|attr:"placeholder:Ej: 25,000.00"|attr:"type:text" }}
-                    </div>
-                    {% if form.monto.errors %}<p class="text-red-400 text-xs mt-1">{{ form.monto.errors }}</p>{% endif %}
-                </div>
-
-                <!-- Campo: Mes de Cierre Esperado -->
-                <div class="mb-6">
-                    <label for="{{ form.mes_cierre.id_for_label }}" class="block text-sm font-semibold text-gray-200 mb-2">Mes de Cierre Esperado</label>
-                    {{ form.mes_cierre|add_class:"form-input-modern" }}
-                    {% if form.mes_cierre.errors %}<p class="text-red-400 text-xs mt-1">{{ form.mes_cierre.errors }}</p>{% endif %}
-                </div>
-
-                <!-- Campo: Probabilidad de Cierre (%) -->
-                <div class="mb-6">
-                    <label for="{{ form.probabilidad_cierre.id_for_label }}" class="block text-sm font-semibold text-gray-200 mb-2">Probabilidad de Cierre (%)</label>
-                    <div class="relative">
-                        {{ form.probabilidad_cierre|add_class:"form-input-modern pr-10"|attr:"placeholder:Ej: 75"|attr:"min:0"|attr:"max:100" }}
-                        <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 text-xl font-bold pointer-events-none">%</span>
-                    </div>
-                    {% if form.probabilidad_cierre.errors %}<p class="text-red-400 text-xs mt-1">{{ form.probabilidad_cierre.errors }}</p>{% endif %}
-                </div>
-
-                <!-- Campo: Comentarios (Textarea) -->
-                <div class="mb-8">
-                    <label for="{{ form.comentarios.id_for_label }}" class="block text-sm font-semibold text-gray-200 mb-2">Comentarios</label>
-                    {{ form.comentarios|add_class:"form-input-modern resize-y"|attr:"placeholder:Notas adicionales sobre la venta..." }}
-                    {% if form.comentarios.errors %}<p class="text-red-400 text-xs mt-1">{{ form.comentarios.errors }}</p>{% endif %}
-                </div>
-            </div>
-
-            <!-- Botón de envío del formulario -->
-            <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-4 px-6 rounded-xl transition duration-300 ease-in-out transform hover:scale-105 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800">
-                Registrar Venta
-            </button>
-        </form>
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block content %}
+<div class="max-w-2xl mx-auto mt-10 bg-gradient-to-br from-gray-900 to-gray-950 rounded-3xl shadow-2xl p-8 relative">
+  <h2 class="text-4xl font-extrabold text-center mb-2 text-white">Registrar Nueva Oportunidad</h2>
+  <p class="text-center text-gray-400 mb-8">Rápido, fácil y sin distracciones.</p>
+  <form id="oportunidadForm" method="post" autocomplete="off" class="space-y-6">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <label for="id_oportunidad" class="block text-sm text-white mb-1">Oportunidad</label>
+        {{ form.oportunidad|add_class:"form-input-modern"|attr:"placeholder: Oportunidad" }}
+      </div>
+      <div>
+        <label for="id_cliente" class="block text-sm text-white mb-1">Cliente</label>
+        {{ form.cliente|add_class:"form-input-modern"|attr:"placeholder: Cliente" }}
+      </div>
+      {% if form.usuario %}
+      <div class="md:col-span-2">
+        <label for="id_usuario" class="block text-sm text-white mb-1">Vendedor Responsable</label>
+        {{ form.usuario|add_class:"form-input-modern"|attr:"placeholder: Vendedor Responsable" }}
+      </div>
+      {% endif %}
+      <div>
+        <label for="id_contacto" class="block text-sm text-white mb-1">Contacto del Cliente</label>
+        {{ form.contacto|add_class:"form-input-modern"|attr:"placeholder: Contacto del Cliente" }}
+      </div>
+      <div>
+        <label for="id_area" class="block text-sm text-white mb-1">Área</label>
+        {{ form.area|add_class:"form-input-modern"|attr:"placeholder: Área" }}
+      </div>
+      <div class="md:col-span-2">
+        <label for="id_producto" class="block text-sm text-white mb-1">Producto / Servicio</label>
+        {{ form.producto|add_class:"form-input-modern"|attr:"placeholder: Producto / Servicio" }}
+      </div>
+      <div>
+        <label for="id_monto" class="block text-sm text-white mb-1">Monto de la Oportunidad ($)</label>
+        {{ form.monto|add_class:"form-input-modern"|attr:"placeholder: Monto de la Oportunidad ($)" }}
+      </div>
+      <div>
+        <label for="id_mes_cierre" class="block text-sm text-white mb-1">Mes de Cierre Esperado</label>
+        {{ form.mes_cierre|add_class:"form-input-modern"|attr:"placeholder: Mes de Cierre Esperado" }}
+      </div>
+      <div>
+        <label for="id_probabilidad_cierre" class="block text-sm text-white mb-1">Probabilidad de Cierre (%)</label>
+        {{ form.probabilidad_cierre|add_class:"form-input-modern"|attr:"placeholder: Probabilidad de Cierre (%)" }}
+      </div>
+      <div class="md:col-span-2">
+        <label for="id_comentarios" class="block text-sm text-white mb-1">Comentarios</label>
+        {{ form.comentarios|add_class:"form-input-modern resize-y"|attr:"placeholder: Comentarios" }}
+      </div>
     </div>
+    <div class="flex justify-between items-center mt-8">
+      <a href="/todos/" class="bg-gray-700 hover:bg-gray-600 text-gray-100 font-semibold py-2 px-6 rounded-xl shadow transition text-center">Volver a Oportunidades</a>
+      <button type="submit" class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Registrar</button>
+    </div>
+  </form>
+</div>
 
-    <!-- Script de JavaScript para el formato del monto -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const montoInput = document.getElementById('id_monto');
-
-            if (montoInput) {
-                // Función para limpiar el valor: elimina todo excepto dígitos y un punto decimal
-                function cleanValue(value) {
-                    if (value === null || value === undefined) return '';
-                    // Reemplaza comas por nada, y luego elimina cualquier caracter que no sea dígito o punto.
-                    // Permite solo un punto decimal.
-                    return value.toString().replace(/,/g, '').replace(/[^0-9.]/g, '');
-                }
-
-                // Función para formatear el valor como moneda
-                function formatCurrency(value) {
-                    const cleaned = cleanValue(value);
-                    const number = parseFloat(cleaned);
-
-                    if (isNaN(number)) {
-                        return ''; // Si no es un número válido, devuelve una cadena vacía
-                    }
-
-                    // Usa Intl.NumberFormat para un formateo robusto y localizado
-                    // 'en-US' usa coma como separador de miles y punto como decimal
-                    return new Intl.NumberFormat('en-US', {
-                        minimumFractionDigits: 2, // Asegura al menos dos decimales
-                        maximumFractionDigits: 2  // Asegura no más de dos decimales
-                    }).format(number);
-                }
-
-                // Al cargar la página, si hay un valor, lo formatea
-                if (montoInput.value) {
-                    montoInput.value = formatCurrency(montoInput.value);
-                }
-
-                // Cuando el campo gana foco, muestra el número sin formato para facilitar la edición
-                montoInput.addEventListener('focus', function() {
-                    this.value = cleanValue(this.value);
-                });
-
-                // Cuando el campo pierde foco, aplica el formato de moneda
-                montoInput.addEventListener('blur', function() {
-                    this.value = formatCurrency(this.value);
-                });
-
-                // Para manejar la entrada en tiempo real, permitiendo solo números y un punto
-                montoInput.addEventListener('input', function() {
-                    const originalValue = this.value;
-                    const cursorPosition = this.selectionStart;
-
-                    const cleaned = cleanValue(originalValue);
-
-                    // Si el valor limpio es diferente del original, significa que se eliminaron caracteres no válidos
-                    if (originalValue !== cleaned) {
-                        this.value = cleaned;
-                        // Ajusta la posición del cursor para que no salte
-                        const newCursorPosition = cursorPosition - (originalValue.length - cleaned.length);
-                        this.setSelectionRange(newCursorPosition, newCursorPosition);
-                    }
-                });
-
-                // Antes de enviar el formulario, asegúrate de que el valor esté limpio para Django
-                montoInput.closest('form').addEventListener('submit', function() {
-                    montoInput.value = cleanValue(montoInput.value);
-                });
-            }
-        });
-    </script>
-</body>
-</html>
+<style>
+.form-input-modern {
+  background: #23272f;
+  color: #e0e7ef;
+  border: 1.5px solid #143a56;
+  border-radius: 0.75rem;
+  padding: 1.1rem 1rem 0.5rem 1rem;
+  font-size: 1rem;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+.form-input-modern:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px #2563eb33;
+}
+</style>
+{% endblock %}

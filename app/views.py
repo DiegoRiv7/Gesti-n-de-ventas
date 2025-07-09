@@ -47,11 +47,14 @@ def bienvenida(request):
     # Fecha actual
     fecha_actual = timezone.localtime(timezone.now()).strftime('%A, %d de %B de %Y')
 
-    # Usuario del mes: más ventas cerradas (probabilidad 100%) este mes, solo vendedores
-    inicio_mes = date.today().replace(day=1)
-    fin_mes = date.today()
+    # Usuario del mes: más ventas cerradas (probabilidad 100%) del mes ANTERIOR, solo vendedores
+    today = date.today()
+    inicio_mes_actual = today.replace(day=1)
+    # Calcular el inicio y fin del mes anterior
+    inicio_mes_anterior = (inicio_mes_actual - relativedelta(months=1))
+    fin_mes_anterior = inicio_mes_actual - relativedelta(days=1)
     ventas_mes = (
-        TodoItem.objects.filter(probabilidad_cierre=100, fecha_creacion__date__gte=inicio_mes, fecha_creacion__date__lte=fin_mes)
+        TodoItem.objects.filter(probabilidad_cierre=100, fecha_creacion__date__gte=inicio_mes_anterior, fecha_creacion__date__lte=fin_mes_anterior)
         .exclude(usuario__groups__name='Supervisores')
         .values('usuario')
         .annotate(ventas_cerradas=Count('id'))
@@ -62,11 +65,11 @@ def bienvenida(request):
     if ventas_mes:
         user_id = ventas_mes[0]['usuario']
         user = User.objects.get(id=user_id)
-        # Calcular el monto total vendido por este usuario en el mes actual (probabilidad 100%)
+        # Calcular el monto total vendido por este usuario en el mes anterior (probabilidad 100%)
         monto_vendido_mes = TodoItem.objects.filter(
             probabilidad_cierre=100,
-            fecha_creacion__date__gte=inicio_mes,
-            fecha_creacion__date__lte=fin_mes,
+            fecha_creacion__date__gte=inicio_mes_anterior,
+            fecha_creacion__date__lte=fin_mes_anterior,
             usuario=user
         ).aggregate(total=Sum('monto'))['total'] or 0
         usuario_mes = {
@@ -78,6 +81,7 @@ def bienvenida(request):
 
     # Usuario del día: más oportunidades registradas hoy, solo vendedores
     hoy = date.today()
+    usuario_dia = None
     oportunidades_hoy = (
         TodoItem.objects.filter(fecha_creacion__date=hoy)
         .exclude(usuario__groups__name='Supervisores')
@@ -85,8 +89,7 @@ def bienvenida(request):
         .annotate(oportunidades_hoy=Count('id'))
         .order_by('-oportunidades_hoy')
     )
-    usuario_dia = None
-    if oportunidades_hoy:
+    if oportunidades_hoy and oportunidades_hoy[0]['oportunidades_hoy'] > 0:
         user_id = oportunidades_hoy[0]['usuario']
         user = User.objects.get(id=user_id)
         usuario_dia = {
@@ -94,6 +97,7 @@ def bienvenida(request):
             'avatar_url': f'https://ui-avatars.com/api/?name={user.get_full_name() or user.username}&background=f472b6&color=fff',
             'oportunidades_hoy': oportunidades_hoy[0]['oportunidades_hoy'],
         }
+    # Si no hay oportunidades hoy, usuario_dia queda en None
 
     # Últimas oportunidades (de todos)
     ultimas_oportunidades_qs = TodoItem.objects.select_related('cliente', 'usuario').order_by('-fecha_creacion')[:8]
@@ -103,7 +107,7 @@ def bienvenida(request):
             'cliente': o.cliente.nombre_empresa if o.cliente else '',
             'monto': o.monto,
             'probabilidad': o.probabilidad_cierre,
-            'fecha_creacion': o.fecha_creacion,
+            'usuario': o.usuario.get_full_name() or o.usuario.username if o.usuario else '',
         }
         for o in ultimas_oportunidades_qs
     ]
@@ -461,49 +465,42 @@ def editar_venta_todoitem(request, pk):
 
 @login_required
 def reporte_ventas_por_cliente(request):
+    from django.contrib.auth.models import User
     if is_supervisor(request.user):
-        # Si es supervisor, obtener TODOS los clientes y el monto vendido (probabilidad 100%)
-        # Sumamos oportunidades con prob_cierre=100 y usamos Coalesce para 0.00 si no hay ventas
         reporte_data = Cliente.objects.annotate(
             total_monto=Coalesce(
                 Sum('oportunidades__monto', filter=Q(oportunidades__probabilidad_cierre=100)),
-                Value(Decimal('0.00')) # Asegura que si no hay ventas, el monto sea 0.00
+                Value(Decimal('0.00'))
             )
         ).values(
-            'id', # Para la URL
-            'nombre_empresa', # Para mostrar el nombre del cliente
-            'total_monto' # El monto calculado
+            'id',
+            'nombre_empresa',
+            'total_monto'
         ).order_by('nombre_empresa')
-
-        # Para el total general del supervisor, sumamos todas las ventas cerradas del sistema
         total_general = TodoItem.objects.filter(probabilidad_cierre=100).aggregate(
             sum_monto=Sum('monto')
         )['sum_monto'] or Decimal('0.00')
-
+        usuarios = User.objects.filter(is_active=True)
     else:
-        # Para vendedores: obtener solo los clientes asignados a este vendedor
-        # y el monto vendido (probabilidad 100%), mostrando 0.00 si no hay ventas cerradas
         reporte_data = Cliente.objects.filter(asignado_a=request.user).annotate(
             total_monto=Coalesce(
                 Sum('oportunidades__monto', filter=Q(oportunidades__probabilidad_cierre=100, oportunidades__usuario=request.user)),
-                Value(Decimal('0.00')) # Asegura 0.00 si no hay ventas para ESTE VENDEDOR
+                Value(Decimal('0.00'))
             )
         ).values(
-            'id', # Para la URL
-            'nombre_empresa', # Para mostrar el nombre del cliente
-            'total_monto' # El monto calculado
+            'id',
+            'nombre_empresa',
+            'total_monto'
         ).order_by('nombre_empresa')
-
-        # Para el total general del vendedor, sumamos solo sus ventas cerradas
         total_general = TodoItem.objects.filter(
             usuario=request.user, probabilidad_cierre=100
         ).aggregate(sum_monto=Sum('monto'))['sum_monto'] or Decimal('0.00')
-
-
+        usuarios = None
     context = {
         'reporte_data': reporte_data,
         'total_general': total_general,
         'is_supervisor': is_supervisor(request.user),
+        'usuarios': usuarios,
     }
     return render(request, 'reporte_ventas_por_cliente.html', context)
 
@@ -1177,3 +1174,69 @@ def cotizaciones_por_cliente_view(request, cliente_id):
         'cotizaciones': cotizaciones_list,
         'is_supervisor': is_supervisor
     })
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from .models import Cliente
+from django.contrib.auth.models import User
+
+@csrf_exempt
+@login_required
+def crear_cliente_api(request):
+    if request.method == 'POST':
+        nombre_empresa = request.POST.get('nombre_empresa')
+        contacto = request.POST.get('contacto')
+        direccion = request.POST.get('direccion')
+        user = request.user
+        asignado_a_id = request.POST.get('asignado_a')
+        if not nombre_empresa or not contacto:
+            return JsonResponse({'error': 'Faltan campos obligatorios'}, status=400)
+        # Si el usuario es supervisor o superuser puede asignar, si no, se asigna a sí mismo
+        if user.is_superuser or is_supervisor(user):
+            if asignado_a_id:
+                try:
+                    asignado_a = User.objects.get(pk=asignado_a_id)
+                except User.DoesNotExist:
+                    return JsonResponse({'error': 'Usuario asignado no existe'}, status=400)
+            else:
+                asignado_a = None
+        else:
+            asignado_a = user
+        cliente = Cliente.objects.create(
+            nombre_empresa=nombre_empresa,
+            contacto=contacto,
+            direccion=direccion,
+            asignado_a=asignado_a
+        )
+        return JsonResponse({'ok': True, 'cliente_id': cliente.id})
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from .models import TodoItem
+
+@csrf_exempt
+@login_required
+def actualizar_probabilidad(request, id):
+    """
+    API para actualizar la probabilidad_cierre de una oportunidad (TodoItem).
+    URL: /api/oportunidad/<id>/probabilidad/
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'No autenticado'}, status=401)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    try:
+        prob = int(request.POST.get('probabilidad', -1))
+        if prob < 0 or prob > 100:
+            return JsonResponse({'error': 'Probabilidad fuera de rango'}, status=400)
+        todo = TodoItem.objects.get(pk=id)
+        todo.probabilidad_cierre = prob
+        todo.save(update_fields=['probabilidad_cierre'])
+        return JsonResponse({'ok': True, 'probabilidad': prob})
+    except TodoItem.DoesNotExist:
+        return JsonResponse({'error': 'Oportunidad no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
